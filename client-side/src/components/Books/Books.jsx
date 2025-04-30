@@ -20,7 +20,7 @@ const Books = () => {
   if (books.length === 0) return <p>Loading...</p>;
 
   return (
-    <div className="body-container">
+    <div>
       <h2 className="text-start text-xl font-bold mt-20">
         Get books
       </h2>

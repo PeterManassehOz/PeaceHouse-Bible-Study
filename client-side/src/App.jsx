@@ -7,7 +7,6 @@ import Login from './pages/Login/Login'
 import Signup from './pages/Signup/Signup'
 import Navbar from './components/Navbar/Navbar'
 import Studies from './pages/Studies/Studies'
-import Profile from './pages/Profile/Profile'
 import Home from './pages/Home/Home'
 import Hero from './components/Hero/Hero'
 import Category from './components/Category/Category'
@@ -47,7 +46,6 @@ const Layout = () => {
         <Routes>
           <Route path="/" element={<Signup />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/profile" element={<Profile />} />
           <Route path="/about" element={<About />} />
           <Route path="/studies" element={<Studies />} />
           <Route path="/study/:id" element={<SingleStudy />} />
