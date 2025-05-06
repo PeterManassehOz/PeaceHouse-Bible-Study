@@ -1,13 +1,17 @@
 const Newsletter = require("../models/newsletter.model");
+const User = require("../models/users.model");
 
 // 🔹 Subscribe to Newsletter
 const subscribeNewsletter = async (req, res) => {
   try {
-    const { email } = req.body;
+    const userId = req.user.id;
 
-    if (!email) {
-      return res.status(400).json({ message: "Email is required" });
+    const user = await User.findById(userId);
+    if (!user || !user.email) {
+      return res.status(404).json({ message: "User not found or email missing" });
     }
+
+    const email = user.email;
 
     // Check if email already exists (user is subscribed)
     const existingSubscriber = await Newsletter.findOne({ email });
@@ -29,16 +33,17 @@ const subscribeNewsletter = async (req, res) => {
 };
 
 
-// 🔹 Get Subscription Status
+// 🔹 Get Subscription Status (based on logged-in user)
 const getSubscriptionStatus = async (req, res) => {
   try {
-    const { email } = req.query;
+    const userId = req.user.id;
 
-    if (!email) {
-      return res.status(400).json({ message: "Email is required" });
+    const user = await User.findById(userId);
+    if (!user || !user.email) {
+      return res.status(404).json({ message: "User not found or email missing" });
     }
 
-    const isSubscribed = await Newsletter.findOne({ email });
+    const isSubscribed = await Newsletter.findOne({ email: user.email });
     res.status(200).json({ subscribed: !!isSubscribed });
   } catch (error) {
     res.status(500).json({ message: "Server Error", error: error.message });
@@ -46,4 +51,15 @@ const getSubscriptionStatus = async (req, res) => {
 };
 
 
-module.exports = { subscribeNewsletter, getSubscriptionStatus};
+
+const getAllSubscribers = async (req, res) => {
+  try {
+    const subscribers = await Newsletter.find({}, { email: 1, subscribedAt: 1 });
+    res.status(200).json(subscribers);
+  } catch (error) {
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+}
+
+
+module.exports = { subscribeNewsletter, getSubscriptionStatus, getAllSubscribers };

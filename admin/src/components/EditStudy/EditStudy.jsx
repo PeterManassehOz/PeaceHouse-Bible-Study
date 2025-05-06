@@ -55,18 +55,32 @@ const EditStudy = () => {
   const formatDate = (dateString) => (dateString ? dateString.split('T')[0] : '');
 
   useEffect(() => {
-    if (study) {
-      reset({
-        title: study.title || '',
-        author: study.author || '',
-        date: formatDate(study.date),
-        category: study.category || '',
-        description: study.description || '',
-        outline: study.outline || '',
-      });
-      setImage(study.image);
+    if (!study) return;
+  
+    const {
+      title,
+      author,
+      date,
+      category,
+      description,
+      outline,
+      image: imagePath,
+    } = study;
+  
+    reset({
+      title: title || '',
+      author: author || '',
+      date: formatDate(date),
+      category: category || '',
+      description: description || '',
+      outline: outline || '',
+    });
+  
+    if (imagePath) {
+      setImage(imagePath ? `http://localhost:5000/${imagePath}` : null);
     }
   }, [study, reset]);
+  
 
   const handleImageChange = (event) => {
     const file = event.target.files[0];

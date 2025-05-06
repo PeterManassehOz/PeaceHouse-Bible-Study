@@ -13,22 +13,13 @@ export const newsLetterAuthApi = createApi({
     },
   }),
   endpoints: (builder) => ({
-    subscribeNewsletter: builder.mutation({
-      query: (email) => ({
-        url: "/subscribe",
-        method: "POST",
-        body: { email },
-      }),
-    }),
-    getSubscriptionStatus: builder.query({
+      getAllSubscribers: builder.query({
         query: () => ({
-          url: "/status",
+            url: "/all-subscribers",
           method: "GET",
-          // no email needed
         }),
       }),
-      
   }),
 });
 
-export const { useSubscribeNewsletterMutation, useGetSubscriptionStatusQuery } = newsLetterAuthApi;
+export const {useGetAllSubscribersQuery } = newsLetterAuthApi;

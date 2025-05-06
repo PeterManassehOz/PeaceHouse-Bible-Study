@@ -64,7 +64,7 @@ const ManageStudy = () => {
       {studies?.length === 0 ? (
         <p className="text-gray-500 text-center">No studies found.</p>
       ) : (
-        studies?.map((study) => (
+        [...studies]?.reverse().map((study) => (
           <div key={study._id} className="bg-white shadow-md rounded-lg p-6 mb-4">
             <div className="mb-4">
               <h3 className="text-xl font-semibold text-gray-700">{study.title}</h3>

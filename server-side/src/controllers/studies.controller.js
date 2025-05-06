@@ -1,5 +1,5 @@
 const Study = require('../models/studies.model');
-const User = require("../models/users.model"); // Import the User model
+const User = require("../models/users.model");
 const mongoose = require('mongoose');
 const path = require('path'); 
 const fs = require("fs");
@@ -622,7 +622,7 @@ exports.getPlatformStatistics = async (req, res) => {
                     isReading: { $gt: [{ $size: "$readingBy" }, 0] },  // Check if readingBy has users
                     completedBy: 1,
                     readingBy: 1,
-                    comments: 1
+                    comments: 1,
                 }
             },
 

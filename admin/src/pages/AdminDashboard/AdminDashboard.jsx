@@ -6,10 +6,11 @@ import Aggregator from "../../components/Aggregator/Aggregator";
 import ManageStudy from "../../components/ManageStudy/ManageStudy";
 import AssignAdminRole from "../../components/AssignAdminRole/AssignAdminRole";
 import CheckUserActivities from "../../components/CheckUserActivities/CheckUserActivities";
-import { MdAddShoppingCart, MdOutlineManageHistory } from "react-icons/md";
+import { MdAddShoppingCart, MdOutlineManageHistory, MdSubscriptions } from "react-icons/md";
 import { GrAggregate } from "react-icons/gr";
 import { MdAssignmentInd } from "react-icons/md";
 import { FiActivity } from "react-icons/fi";
+import NewsletterSubscribers from "../../components/NewsletterSubscribers/NewsletterSubscribers";
 
 
 
@@ -57,6 +58,10 @@ const AdminDashboard = () => {
             <li onClick={() => handleComponentChange("assignadminrole")} className="flex items-center gap-2 p-3 cursor-pointer hover:bg-green-700 rounded">
               <MdAssignmentInd className="text-xl" /> Assign Admin Role
             </li>
+            <li onClick={() => handleComponentChange("subscribers")} className="flex items-center gap-2 p-3 cursor-pointer hover:bg-green-700 rounded">
+              <MdSubscriptions className="text-xl" />
+              Subscribers
+            </li>
             <li onClick={() => handleComponentChange("checkuseractivities")} className="flex items-center gap-2 p-3 cursor-pointer hover:bg-green-700 rounded">
               <FiActivity  className="text-xl" /> Check user's activities
             </li>
@@ -90,6 +95,7 @@ const AdminDashboard = () => {
         {selectedComponent === "createstudy" && <CreateStudy />}
         {selectedComponent === "managestudy" && <ManageStudy />}
         {selectedComponent === "assignadminrole" && <AssignAdminRole />}
+        {selectedComponent === "subscribers" && <NewsletterSubscribers />}
         {selectedComponent === "checkuseractivities" && <CheckUserActivities />}
       </div>
     </div>

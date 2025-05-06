@@ -9,34 +9,33 @@ import {
 } from "../../redux/newsLetterAuthApi/newsLetterAuthApi";
 
 const Footer = () => {
-  const [email, setEmail] = useState("");
-  
-  // Get subscription status (only fetch when email is entered)
-  const { data, refetch } = useGetSubscriptionStatusQuery(email, { 
-    skip: !email 
-  });
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const { data, isLoading: isCheckingStatus } = useGetSubscriptionStatusQuery();
 
   // Subscribe/Unsubscribe API mutation
-  const [subscribeNewsletter, { isLoading }] = useSubscribeNewsletterMutation();
+  const [subscribeNewsletter, { isLoading: isSubscribing }] = useSubscribeNewsletterMutation();
 
+  
+  // Update subscription status when data changes
   useEffect(() => {
-    if (email) refetch();
-  }, [email, refetch]);
-
-  const handleSubscription = async () => {
-    if (!email) {
-      toast.error("Please enter your email!");
-      return;
+    if (data) {
+      setIsSubscribed(data.subscribed);
     }
+  }, [data]);
 
+
+ 
+  const handleSubscription = async () => {
     try {
-      const response = await subscribeNewsletter(email).unwrap();
-      toast.success(response.message);  // Show either "Subscribed" or "Unsubscribed"
-      refetch(); // Update the UI immediately
-    } catch (error) {
-      toast.error(error.data?.message || "Something went wrong");
+      await subscribeNewsletter().unwrap();
+      setIsSubscribed((prev) => !prev);
+      toast.success('Newsletter subscription updated!');
+    } catch (err) {
+      console.error("Subscription failed:", err);
+      toast.error('Newsletter subscription failed');
     }
   };
+  
 
   return (
     <footer className="bg-gray-900 text-white py-10 px-6 sm:px-20">
@@ -67,25 +66,28 @@ const Footer = () => {
 
         {/* Right Section */}
         <div className="text-center md:text-right md:w-[25%]">
-          <h3 className="text-xl font-semibold">Stay Connected</h3>
-          <p className="text-sm mt-2 leading-6">Sign up with your email, and we&apos;ll keep you updated</p>
-          <div className="flex mt-4">
-            <input
-              className="w-full p-3 border border-gray-500 bg-transparent rounded-md focus:ring-2 focus:ring-green-300 focus:outline-none focus:border-none"
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <button
-              className="bg-green-500 px-4 py-2 rounded-r-md hover:bg-green-400 transition cursor-pointer"
-              onClick={handleSubscription}
-              disabled={isLoading}
-            >
-              {isLoading ? "Loading..." : data?.subscribed ? "Unsubscribe" : "Subscribe"}
-            </button>
+            <h3 className="text-xl font-semibold">Stay Connected</h3>
+            <p className="text-sm mt-2 leading-6">
+              Click below to {isSubscribed ? "unsubscribe" : "subscribe"} {isSubscribed ? "from" : "to"} our newsletter.
+            </p>
+            <div className="flex mt-4 justify-center md:justify-end w-full">
+              <button
+                className={`px-5 py-2 rounded-full text-white font-medium shadow-md transition duration-300 
+                  text-sm sm:text-base w-full sm:w-auto
+                  ${isSubscribed ? "bg-red-600 hover:bg-red-500 disabled:bg-red-400" : "bg-green-600 hover:bg-green-500 disabled:bg-green-400"}`}
+                onClick={handleSubscription}
+                disabled={isSubscribing || isCheckingStatus}
+              >
+                {isCheckingStatus
+                  ? "Checking..."
+                  : isSubscribing
+                  ? "Processing..."
+                  : isSubscribed
+                  ? "Unsubscribe"
+                  : "Subscribe"}
+              </button>
+            </div>
           </div>
-        </div>
       </div>
 
       {/* Copyright */}

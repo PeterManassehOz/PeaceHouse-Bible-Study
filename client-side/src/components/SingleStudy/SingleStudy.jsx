@@ -28,8 +28,6 @@ import ReactMarkdown from 'react-markdown';
 
 
 
-// Pagination Helpers
-const WORDS_PER_PAGE = 250; // Limit words per page
 
 
 const SingleStudy = () => {
@@ -64,6 +62,28 @@ const SingleStudy = () => {
   const [userReaction, setUserReaction] = useState(reactionData?.userReaction || null); 
   const [currentPage, setCurrentPage] = useState(0);
   const navigate = useNavigate();
+
+
+  const getWordsPerPage = () => {
+    if (typeof window !== "undefined") {
+      return window.innerWidth >= 1024 ? 2000 : 250; // 1024px is a common laptop breakpoint
+    }
+    return 250; // Default fallback
+  };
+  
+  const [wordsPerPage, setWordsPerPage] = useState(getWordsPerPage());
+  
+  
+  useEffect(() => {
+    const handleResize = () => {
+      setWordsPerPage(getWordsPerPage());
+    };
+  
+    window.addEventListener("resize", handleResize);
+  
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  
 
 
   useEffect(() => {
@@ -262,8 +282,9 @@ const SingleStudy = () => {
   
   // Paginate the outline
   const outlineWords = study.outline.split(" ");
-  const totalPages = Math.ceil(outlineWords.length / WORDS_PER_PAGE);
-  const currentWords = outlineWords.slice(currentPage * WORDS_PER_PAGE, (currentPage + 1) * WORDS_PER_PAGE).join(" ");
+  const totalPages = Math.ceil(outlineWords.length / wordsPerPage);
+  const currentWords = outlineWords.slice(currentPage * wordsPerPage, (currentPage + 1) * wordsPerPage).join(" ");
+
   
 
   

@@ -22,6 +22,8 @@ const studySchema = yup.object().shape({
 const CreateStudy = () => {
   const [createStudy, { isLoading, error }] = useCreateStudyMutation();
   const [outlinePreview, setOutlinePreview] = useState("");
+  const [imagePreview, setImagePreview] = useState(null);
+  const [fileName, setFileName] = useState("");
 
   // Initialize React Hook Form
   const {
@@ -141,27 +143,47 @@ const CreateStudy = () => {
 
         {/* Image Upload */}
         <label className="block w-full p-3 bg-blue-600 text-white text-center rounded cursor-pointer hover:bg-blue-700">
-            Upload Image
-            <input
-              type="file"
-              accept="image/*"
-              {...register("image")}
-              className="hidden"
-            />
+          Upload Image
+          <input
+            type="file"
+            accept="image/*"
+            {...register("image")}
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files[0];
+              if (file) {
+                setImagePreview(URL.createObjectURL(file));
+              }
+            }}
+          />
         </label>
+        {imagePreview && (
+          <img
+            src={imagePreview}
+            alt="Preview"
+            className="mt-2 w-full max-h-60 object-contain rounded"
+          />
+        )}
         {errors.image && <p className="text-red-500">{errors.image.message}</p>}
 
 
         {/* Study File Upload */}
         <label className="block w-full p-3 bg-blue-600 text-white text-center rounded cursor-pointer hover:bg-blue-700">
-          Upload File
-          <input
-            type="file"
-            accept=".pdf,.docx"
-            {...register("file")}
-            className="hidden"
-          />
-        </label>
+            Upload File
+            <input
+              type="file"
+              accept=".pdf,.docx"
+              {...register("file")}
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files[0];
+                if (file) {
+                  setFileName(file.name);
+                }
+              }}
+            />
+          </label>
+          {fileName && <p className="mt-2 text-gray-700">Selected file: {fileName}</p>}
         {errors.file && <p className="text-red-500">{errors.file.message}</p>}
 
         {/* Submit Button */}
