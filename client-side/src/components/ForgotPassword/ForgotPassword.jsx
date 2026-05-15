@@ -9,9 +9,8 @@ const ForgotPassword = () => {
     email: yup.string().email("Invalid email").required("Email is required"),
   });
 
-  const { register, handleSubmit, formState: { errors }, isLoading } = useForm({ resolver: yupResolver(schema) });
-
-  const [forgotPassword] = useForgotPasswordMutation(); // ✅ Call the hook correctly
+  const { register, handleSubmit, formState: { errors } } = useForm({ resolver: yupResolver(schema) });
+  const [forgotPassword, { isLoading }] = useForgotPasswordMutation();
 
   const onSubmit = async (data) => {
     try {

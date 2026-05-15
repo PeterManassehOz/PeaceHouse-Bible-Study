@@ -1,41 +1,169 @@
 import React, { useState } from "react";
-import { useGetUserDownloadsQuery } from "../../redux/studyAuthApi/studyAuthApi";
-import Loader from "../Loader/Loader";
-import Error from "../Error/Error";
 import { useNavigate } from "react-router-dom";
+import { useGetUserDownloadsQuery } from "../../redux/studyAuthApi/studyAuthApi";
+import {
+  MdMenuBook,
+  MdArrowForward,
+  MdCalendarToday,
+  MdDownload,
+} from "react-icons/md";
+import Loader from "../Loader/Loader";
+
 
 const Downloaded = () => {
     const navigate = useNavigate();
-  const { data: studies, error, isLoading } = useGetUserDownloadsQuery();
-  const [_showError, setShowError] = useState(false);
+    const {
+      data: studies = [],
+      error,
+      isLoading,
+      isError,
+    } = useGetUserDownloadsQuery();
+    const [_showError, setShowError] = useState(false);
 
-    if (isLoading) return <Loader />;
-    if (error) return <Error onClose={() => setShowError(false)} />;
 
-  
+
+ if (isLoading) return <Loader />;
+
+  if (isError) {
+    return (
+      <div className="flex justify-center items-center h-[60vh]">
+        <div className="bg-white shadow-xl rounded-3xl p-10 text-center">
+          <h2 className="text-2xl font-bold text-gray-800 mb-3">
+            Failed to load studies
+          </h2>
+
+          <p className="text-gray-500">
+            Please refresh the page and try again.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <h2 className="text-2xl font-semibold mb-4 text-center">Downloaded Studies</h2>
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+      {/* Header */}
+      <div className="mb-10">
+        <div className="flex items-center gap-4 mb-3">
+          <div className="w-14 h-14 rounded-2xl bg-purple-600 text-white flex items-center justify-center text-3xl shadow-lg">
+            <MdMenuBook />
+          </div>
+
+          <div>
+            <h2 className="text-4xl font-bold text-gray-800">
+              Downloaded Studies
+            </h2>
+
+            <p className="text-gray-500 text-lg">
+              View your downloaded studies.
+            </p>
+          </div>
+        </div>
+      </div>
 
       {studies.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {studies.map((study) => (
-            <div
-              key={study._id}
-              className="bg-white shadow-md p-4 rounded-lg cursor-pointer hover:shadow-lg transition duration-300"
-              onClick={() => navigate(`/study/${study._id}`)}
-            >
-              <h3 className="text-lg font-semibold">{study.title}</h3>
-              <p className="text-sm text-gray-500">{study.author}</p>
-            </div>
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+          {studies.map((study) => {
+            const imageUrl = study.image
+              ? `http://localhost:5000/${study.image}`
+              : "/fallback-image.jpg";
+
+            return (
+              <div
+                key={study._id}
+                onClick={() => navigate(`/study/${study._id}`)}
+                className="group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 cursor-pointer"
+              >
+                {/* Image */}
+                <div className="relative h-60 overflow-hidden">
+                  <img
+                    src={imageUrl}
+                    alt={study.title}
+                    className="w-full h-full object-cover group-hover:scale-110 transition duration-700"
+                  />
+
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+                  <div className="absolute bottom-5 left-5 right-5">
+                    <span className="inline-block px-4 py-1 rounded-full bg-blue-600 text-white text-xs font-semibold mb-3">
+                      {study.category}
+                    </span>
+
+                    <h3 className="text-2xl font-bold text-white line-clamp-2">
+                      {study.title}
+                    </h3>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="p-6">
+                  <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
+                    <MdCalendarToday />
+                    <span>
+                      {new Date(study.date).toLocaleDateString()}
+                    </span>
+                  </div>
+
+                  <p className="text-sm text-gray-500 mb-3">
+                    By <span className="font-semibold">{study.author}</span>
+                  </p>
+
+                  <p className="text-gray-600 text-sm leading-relaxed line-clamp-4 mb-5">
+                    {study.description}
+                  </p>
+
+                  <div className="bg-purple-50 rounded-2xl p-4 mb-5">
+                    <p className="text-xs uppercase tracking-wide text-purple-500 mb-2 font-semibold">
+                      Study Outline
+                    </p>
+
+                    <p className="text-sm text-gray-600 line-clamp-3">
+                      {study.outline}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <MdDownload />
+                      <span>{study.downloads || 0} downloads</span>
+                    </div>
+
+                    <button className="flex items-center gap-2 px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-medium transition">
+                      Read Again
+                      <MdArrowForward />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       ) : (
-        <p className="text-gray-500 text-center">No studies downloaded.</p>
+        <div className="max-w-xl mx-auto bg-white border border-gray-100 rounded-[2rem] p-12 text-center shadow-xl">
+          <div className="w-28 h-28 rounded-full bg-purple-100 mx-auto flex items-center justify-center mb-6">
+            <MdMenuBook className="text-6xl text-purple-600" />
+          </div>
+
+          <h3 className="text-3xl font-bold text-gray-800 mb-3">
+            No Downloaded Studies
+          </h3>
+
+          <p className="text-gray-500 leading-relaxed mb-8">
+            Start reading any study material and continue your learning journey
+            from here beautifully organized.
+          </p>
+
+          <button
+            onClick={() => navigate("/studies")}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-4 rounded-2xl font-semibold shadow-lg transition"
+          >
+            Browse Studies
+          </button>
+        </div>
       )}
     </div>
   );
 };
+
 
 export default Downloaded;

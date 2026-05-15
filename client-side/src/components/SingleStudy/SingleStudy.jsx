@@ -33,6 +33,20 @@ import ReactMarkdown from 'react-markdown';
 const SingleStudy = () => {
   const { id } = useParams(); 
   const { data: study, refetch } = useGetStudyByIdQuery(id);
+
+
+    useEffect(() => {
+    if (study) {
+      console.log("SINGLE STUDY FULL DATA:", study);
+      console.log("SINGLE STUDY IMAGE:", study.image);
+      console.log(
+        "SINGLE STUDY IMAGE URL:",
+        `http://localhost:5000/${study.image}`
+      );
+    }
+  }, [study]);
+
+  
   const [markStudyDownloaded] = useMarkStudyDownloadedMutation();
   const { data: _fileData } = useGetStudyToDownloadQuery(id, { skip: !id }); 
   const [addComment] = useAddCommentMutation();

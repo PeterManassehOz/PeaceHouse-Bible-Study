@@ -2,7 +2,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { IoIosArrowBack } from "react-icons/io";
 import Loader from "../Loader/Loader";
-import Error from "../Error/Error";
 import { useGetAllStudyQuery } from "../../redux/studyAuthApi/studyAuthApi"; 
 
 
@@ -40,7 +39,7 @@ const Category = () => {
 
   if (isLoading) return <Loader />;
 
-  if (showError) return <Error onClose={() => setShowError(false)} />;
+  if (showError) return <p className="text-center mt-20">Something went wrong</p>
 
   return (
     <div className="p-6">

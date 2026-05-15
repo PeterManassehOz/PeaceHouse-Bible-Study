@@ -9,8 +9,6 @@ import {
 import { toast } from "react-toastify";
 import useUserProfile from "../../hooks/useUserProfile";
 import Loader from "../../components/Loader/Loader";
-import Error from "../../components/Error/Error";
-
 
 
 
@@ -94,7 +92,7 @@ const Profile = () => {
 
   
   if (Loading) return <Loader />
-  if (error) return <Error onClose={() => setShowError(false)} />;
+  if (error) return <p>{error?.data?.message || "Something went wrong"}</p>
 
 
   return (

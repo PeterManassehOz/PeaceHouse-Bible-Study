@@ -7,9 +7,9 @@ import { useLoginUserMutation } from '../../redux/userAuthApi/userAuthApi'
 
 const Login = () => {
   const schema = yup.object().shape({
-    phcode: yup.string().required("PH code is required"),
-    password: yup.string().min(6, "Password must be at least 6 characters").required("Password is required"),
-    term: yup.boolean().oneOf([true], "You must agree to the terms"),
+    identifier: yup.string().required("Email or PH code is required"),
+    password: yup.string().min(6).required("Password is required"),
+    term: yup.boolean().oneOf([true])
   });
 
   const { register, handleSubmit, formState: { errors } } = useForm({ resolver: yupResolver(schema) });
@@ -21,18 +21,20 @@ const Login = () => {
   const navigate = useNavigate();
 
   const onSubmit = async (data) => {
+    console.log("LOGIN FORM DATA SENT:", data);
     try {
       const response = await loginUser(data).unwrap();
+
       localStorage.setItem('token', response.token);
-      localStorage.setItem('phcode', data.phcode); // Store email in localStorage
+      localStorage.setItem('identifier', data.identifier);
 
       if (!response.user.profileCompleted) {
         navigate('/user-dashboard');
       } else {
         navigate('/home');
       }
+
     } catch (error) {
-      console.error(error);
       toast.error(error?.data?.message || "Login failed");
     }
   };
@@ -45,11 +47,11 @@ const Login = () => {
       >
         <h2 className="text-2xl font-semibold text-center text-gray-700 mb-6">Log in</h2>
         
-        <input 
-          className="w-full p-3 mb-3 bg-gray-100 rounded-md border-none focus:ring-2 focus:ring-green-300 focus:outline-none" 
-          type="text" 
-          placeholder="PH code" 
-          {...register("phcode")}
+        <input
+          className="w-full p-3 mb-3 bg-gray-100 rounded-md"
+          type="text"
+          placeholder="Email or PH Code"
+          {...register("identifier")}
         />
         {errors.phcode && <p className="text-red-500 text-sm">{errors.phcode.message}</p>}
 
