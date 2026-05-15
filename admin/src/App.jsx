@@ -6,6 +6,7 @@ import AdminDashboard from './pages/AdminDashboard/AdminDashboard'
 import EditStudy from './components/EditStudy/EditStudy'
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import AdminPending from './components/AdminPending'
 
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
           <Route path="/admin-signup" element={<AdminSignup />} />
           <Route path="/admin-login" element={<AdminLogin />} />
           {<Route path="/edit-study/:id" element={<EditStudy />} />}
+          <Route path="/admin-pending" element={<AdminPending />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
         </Routes>
       </Router>

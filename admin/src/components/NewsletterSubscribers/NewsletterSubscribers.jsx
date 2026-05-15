@@ -24,7 +24,7 @@ const NewsletterSubscribers = () => {
         <input
           type="text"
           placeholder="Search by email..."
-          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-400"
+          className="w-full p-3 rounded-xl border-none bg-gray-100 outline-none focus:ring-2 focus:ring-green-500"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />

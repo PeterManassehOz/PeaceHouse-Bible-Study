@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { IoArrowBack, IoLogOut, IoHome,} from "react-icons/io5";
 import CreateStudy from "../../components/CreateStudy/CreateStudy";
@@ -21,6 +21,15 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const [selectedComponent, setSelectedComponent] = useState(null);
 
+
+  useEffect(() => {
+    const isAdmin = localStorage.getItem("isAdmin");
+
+    if (isAdmin !== "true") {
+      navigate("/admin-pending");
+    }
+  }, []);
+
   const handleComponentChange = (component) => {
     setSelectedComponent(component);
   };
@@ -40,7 +49,7 @@ const AdminDashboard = () => {
       <div className={`fixed inset-0 bg-green-900 text-white p-6 md:w-64 md:h-full md:relative flex flex-col justify-between h-full 
           ${selectedComponent ? "hidden md:flex" : "flex"}`}> 
         <div>
-          <div onClick={() => navigate("/home")} className="flex items-center gap-2 text-lg font-bold cursor-pointer">
+          <div className="flex items-center gap-2 text-lg font-bold cursor-pointer">
             <IoHome className="text-xl" />
             <span>PHouse Studies</span>
           </div>

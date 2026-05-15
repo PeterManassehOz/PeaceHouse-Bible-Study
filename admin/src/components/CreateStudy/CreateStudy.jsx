@@ -1,212 +1,260 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useCreateStudyMutation } from "../../redux/adminStudyAuthApi/adminStudyAuthApi";
 import ReactMarkdown from "react-markdown";
 import { toast } from "react-toastify";
+import { MdCloudUpload, MdImage, MdSend, MdAutoFixHigh } from "react-icons/md";
 
-// 📌 Define validation schema with Yup
+/* Schema */
 const studySchema = yup.object().shape({
-  title: yup.string().required("Title is required"),
-  description: yup.string().required("Description is required"),
-  date: yup.string().required("Date is required"),
-  outline: yup.string().required("Outline is required"),
-  author: yup.string().required("Author is required"),
-  category: yup.string().required("Category is required"),
-  status: yup.string().required("Status is required"),
-  image: yup.mixed().required("Image is required"),
-  file: yup.mixed().required("Study file is required"),
+  title: yup.string().required(),
+  description: yup.string().required(),
+  date: yup.string().required(),
+  outline: yup.string().required(),
+  author: yup.string().required(),
+  category: yup.string().required(),
+  status: yup.string().required(),
+  image: yup.mixed().required(),
+  file: yup.mixed().required(),
 });
 
+const DRAFT_KEY = "study_draft_v1";
+
 const CreateStudy = () => {
-  const [createStudy, { isLoading, error }] = useCreateStudyMutation();
+  const [createStudy, { isLoading }] = useCreateStudyMutation();
+
   const [outlinePreview, setOutlinePreview] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const [fileName, setFileName] = useState("");
 
-  // Initialize React Hook Form
+  const dropRef = useRef(null);
+
   const {
     register,
     handleSubmit,
     setValue,
+    watch,
+    reset,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(studySchema),
   });
 
-  // Handle Form Submission
+  const watched = watch();
+
+  /* ---------------- AUTO SAVE DRAFT ---------------- */
+  useEffect(() => {
+    const saved = localStorage.getItem(DRAFT_KEY);
+    if (saved) {
+      const data = JSON.parse(saved);
+      Object.keys(data).forEach((key) => setValue(key, data[key]));
+      setOutlinePreview(data.outline || "");
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(watched));
+  }, [watched]);
+
+  /* ---------------- DRAG & DROP IMAGE ---------------- */
+  useEffect(() => {
+    const el = dropRef.current;
+    if (!el) return;
+
+    const handleDrop = (e) => {
+      e.preventDefault();
+      const file = e.dataTransfer.files?.[0];
+      if (file) {
+        setValue("image", [file]);
+        setImagePreview(URL.createObjectURL(file));
+      }
+    };
+
+    el.addEventListener("drop", handleDrop);
+    return () => el.removeEventListener("drop", handleDrop);
+  }, [setValue]);
+
+  /* ---------------- FAKE AI OUTLINE GENERATOR ---------------- */
+  const generateOutline = () => {
+    const auto = `## Introduction\nExplain the core idea...\n\n## Key Lessons\n- Point 1\n- Point 2\n\n## Summary\nWrap up key insights.`;
+    setValue("outline", auto);
+    setOutlinePreview(auto);
+    toast.success("Outline generated!");
+  };
+
+  /* ---------------- SUBMIT ---------------- */
   const onSubmit = async (data) => {
     const formData = new FormData();
-    
-    formData.append("title", data.title);
-    formData.append("description", data.description);
-    formData.append("date", data.date);
-    formData.append("author", data.author);
-    formData.append("category", data.category);
-    formData.append("status", data.status);
-    formData.append("outline", data.outline);
-  
+
+    Object.entries({
+      title: data.title,
+      description: data.description,
+      date: data.date,
+      author: data.author,
+      category: data.category,
+      status: data.status,
+      outline: data.outline,
+    }).forEach(([k, v]) => formData.append(k, v));
+
     if (data.image?.[0]) formData.append("image", data.image[0]);
     if (data.file?.[0]) formData.append("file", data.file[0]);
-  
-    console.log("Form Data:", Object.fromEntries(formData.entries()));
-
-    console.log("Title:", data.title);
-    console.log("Image:", data.image?.[0]); // Should show File object
-    console.log("File:", data.file?.[0]); // Should show File object
-
 
     try {
-      const response = await createStudy(formData).unwrap(); // Ensure we unwrap the response
-  
-      if (response && response.message === "Study created successfully") {
-        toast("Study created successfully!");
-      } else {
-        console.error("❌ Unexpected response:", response);
-        toast("Failed to create study. Please try again.");
-      }
+      await createStudy(formData).unwrap();
+      toast.success("Study created successfully!");
+      localStorage.removeItem(DRAFT_KEY);
+      reset();
     } catch (err) {
-      console.error("❌ Error creating study:", err);
-      toast("Error creating study. Check console for details.");
+      toast.error(err?.data?.message || "Failed to create study");
     }
   };
-  
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white shadow-lg rounded-md">
-      <h2 className="text-2xl font-bold mb-4 text-center">Create Study</h2>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Title */}
-        <input
-          type="text"
-          placeholder="Title"
-          {...register("title")}
-          className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-        />
-        {errors.title && <p className="text-red-500">{errors.title.message}</p>}
+        {/* FORM */}
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6">
 
-        {/* Description */}
-        <textarea
-          placeholder="Description"
-          {...register("description")}
-          className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-        />
-        {errors.description && <p className="text-red-500">{errors.description.message}</p>}
+          {/* HEADER */}
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold">Create Study</h2>
 
-        {/* Date */}
-        <input
-          type="date"
-          {...register("date")}
-          className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-        />
-        {errors.date && <p className="text-red-500">{errors.date.message}</p>}
+            <button
+              type="button"
+              onClick={generateOutline}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700"
+            >
+              <MdAutoFixHigh />
+              Generate Outline
+            </button>
+          </div>
 
-        {/* Author */}
-        <input
-          type="text"
-          placeholder="Author"
-          {...register("author")}
-         className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-        />
-        {errors.author && <p className="text-red-500">{errors.author.message}</p>}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
-        {/* Category */}
-        <input
-          type="text"
-          placeholder="Category"
-          {...register("category")}
-         className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-        />
-        {errors.category && <p className="text-red-500">{errors.category.message}</p>}
+            {/* GRID */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Title" register={register("title")} error={errors.title} />
+              <Input label="Author" register={register("author")} error={errors.author} />
+              <Input label="Category" register={register("category")} error={errors.category} />
 
-        {/* Status */}
-        <select {...register("status")} className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500">
-          <option value="">Select Status</option>
-          <option value="Draft">Draft</option>
-          <option value="Published">Published</option>
-        </select>
-        {errors.status && <p className="text-red-500">{errors.status.message}</p>}
+              <select
+                {...register("status")}
+                className="w-full p-3 rounded-xl border-none bg-gray-100 outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <option value="">Status</option>
+                <option value="Draft">Draft</option>
+                <option value="Published">Published</option>
+              </select>
 
-        {/* Outline (Markdown-enabled) */}
-        <textarea
-          placeholder="Enter outline (Markdown supported)"
-          {...register("outline")}
-          onChange={(e) => {
-            setValue("outline", e.target.value);
-            setOutlinePreview(e.target.value);
-          }}
-         className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 h-32"
-        ></textarea>
-        {errors.outline && <p className="text-red-500">{errors.outline.message}</p>}
+              <Input type="date" register={register("date")} error={errors.date} />
+            </div>
 
-        {/* Image Upload */}
-        <label className="block w-full p-3 bg-blue-600 text-white text-center rounded cursor-pointer hover:bg-blue-700">
-          Upload Image
-          <input
-            type="file"
-            accept="image/*"
-            {...register("image")}
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files[0];
-              if (file) {
-                setImagePreview(URL.createObjectURL(file));
-              }
-            }}
-          />
-        </label>
-        {imagePreview && (
-          <img
-            src={imagePreview}
-            alt="Preview"
-            className="mt-2 w-full max-h-60 object-contain rounded"
-          />
-        )}
-        {errors.image && <p className="text-red-500">{errors.image.message}</p>}
-
-
-        {/* Study File Upload */}
-        <label className="block w-full p-3 bg-blue-600 text-white text-center rounded cursor-pointer hover:bg-blue-700">
-            Upload File
-            <input
-              type="file"
-              accept=".pdf,.docx"
-              {...register("file")}
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files[0];
-                if (file) {
-                  setFileName(file.name);
-                }
-              }}
+            {/* DESCRIPTION */}
+            <textarea
+              placeholder="Description"
+              {...register("description")}
+              className="w-full p-3 rounded-xl border-none bg-gray-100 outline-none focus:ring-2 focus:ring-green-500"
             />
-          </label>
-          {fileName && <p className="mt-2 text-gray-700">Selected file: {fileName}</p>}
-        {errors.file && <p className="text-red-500">{errors.file.message}</p>}
 
-        {/* Submit Button */}
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 cursor-pointer"
-          disabled={isLoading}
-        >
-          {isLoading ? "Creating..." : "Create Study"}
-        </button>
-      </form>
+            {/* OUTLINE */}
+            <textarea
+              placeholder="Outline (Markdown)"
+              {...register("outline")}
+              onChange={(e) => {
+                setValue("outline", e.target.value);
+                setOutlinePreview(e.target.value);
+              }}
+              className="w-full p-3 h-40 rounded-xl border-none bg-gray-100 outline-none focus:ring-2 focus:ring-green-500"
+            />
 
-      {error && <p className="text-red-500 mt-2">Error: {error.message}</p>}
+            {/* UPLOAD AREA */}
+            <div
+              ref={dropRef}
+              className="flex gap-3 flex-wrap border-2 border-dashed border-gray-300 rounded-xl p-4"
+            >
 
-      {/* Live Markdown Preview */}
-      <div className="mt-6 p-4 border rounded bg-gray-100">
-        <h3 className="font-bold text-lg">Live Outline Preview:</h3>
-        <div className="prose">
-          <ReactMarkdown>{outlinePreview}</ReactMarkdown>
+              {/* IMAGE */}
+              <label className="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-blue-600 text-white py-3 rounded-xl cursor-pointer">
+                <MdImage />
+                Image
+                <input
+                  type="file"
+                  accept="image/*"
+                  {...register("image")}
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) setImagePreview(URL.createObjectURL(file));
+                  }}
+                />
+              </label>
+
+              {/* FILE */}
+              <label className="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-purple-600 text-white py-3 rounded-xl cursor-pointer">
+                <MdCloudUpload />
+                File
+                <input
+                  type="file"
+                  accept=".pdf,.docx"
+                  {...register("file")}
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) setFileName(file.name);
+                  }}
+                />
+              </label>
+
+              {/* SUBMIT */}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-green-600 text-white py-3 rounded-xl"
+              >
+                <MdSend />
+                {isLoading ? "Creating..." : "Create"}
+              </button>
+
+            </div>
+
+          </form>
         </div>
+
+        {/* PREVIEW PANEL */}
+        <div className="bg-white rounded-2xl shadow-sm p-6 sticky top-6 h-fit">
+
+          <h3 className="font-semibold mb-4">Live Preview</h3>
+
+          {imagePreview && (
+            <img src={imagePreview} className="rounded-xl mb-4 w-full h-40 object-cover" />
+          )}
+
+          {fileName && <p className="text-sm mb-3">📄 {fileName}</p>}
+
+          <div className="prose prose-sm">
+            <ReactMarkdown>{outlinePreview}</ReactMarkdown>
+          </div>
+        </div>
+
       </div>
     </div>
   );
 };
+
+/* INPUT */
+const Input = ({ label, register, error, type = "text" }) => (
+  <div>
+    <input
+      type={type}
+      placeholder={label}
+      {...register}
+      className="w-full p-3 rounded-xl border-none bg-gray-100 outline-none focus:ring-2 focus:ring-green-500"
+    />
+    {error && <p className="text-red-500 text-sm mt-1">{error.message}</p>}
+  </div>
+);
 
 export default CreateStudy;

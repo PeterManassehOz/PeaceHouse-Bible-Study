@@ -68,7 +68,7 @@ const AssignAdminRole = () => {
             <input
               type="email"
               {...register('email')}
-              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full p-3 rounded-xl border-none bg-gray-100 outline-none focus:ring-2 focus:ring-green-500"
               placeholder="Enter admin email"
             />
             <p className="text-red-500">{errors.email?.message}</p>
@@ -76,7 +76,7 @@ const AssignAdminRole = () => {
 
           <button
             type="submit"
-            className="bg-blue-600 text-white p-2 rounded-lg w-full cursor-pointer"
+            className="bg-green-600 text-white p-2 rounded-lg w-full cursor-pointer"
             disabled={isLoading}
           >
             {isLoading ? 'Assigning...' : 'Assign Admin Role'}

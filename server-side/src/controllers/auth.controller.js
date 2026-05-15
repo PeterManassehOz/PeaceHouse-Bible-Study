@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
+const { hashPassword, verifyPassword, generateToken } = require("../utils/generateTokenPassword");
 
 
 const transporter = nodemailer.createTransport({
@@ -18,73 +19,98 @@ const transporter = nodemailer.createTransport({
 
 
 const registerUser = async (req, res) => {
-    try {
-        const { firstname, lastname, email, phcode, password, confirmPassword } = req.body;
+  try {
+    const { firstname, lastname, email, phcode, password, confirmPassword } = req.body;
 
-        if (password !== confirmPassword) {
-            return res.status(400).json({ message: 'Passwords do not match' });
-        }
-
-        // Create user instance (without password yet)
-        const user = new User({ firstname, lastname, email, phcode});
-
-        // Get hashed password and token
-        const { hashedPassword, token } = await generateTokenPassword(user, password);
-
-        // Assign the hashed password and save user
-        user.password = hashedPassword;
-        await user.save();
-
-        res.status(201).json({ token, user });
-    } catch (error) {
-        res.status(400).json({ message: error.message });
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: "Passwords do not match" });
     }
+
+    const hashed = await hashPassword(password);
+
+    const user = await User.create({
+      firstname,
+      lastname,
+      email,
+      phcode,
+      password: hashed,
+    });
+
+    const token = generateToken(user);
+
+    res.status(201).json({ token, user });
+
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
 };
 
-
-
 const loginUser = async (req, res) => {
-    try {
-        const { phcode, password } = req.body;
+  try {
+    const { identifier, password } = req.body;
 
-        // 🔹 Find user by phcode
-        const user = await User.findOne({ phcode });
-        if (!user) {
-            return res.status(400).json({ message: 'Invalid phcode or password' });
-        }
+  
+    const user = await User.findOne({
+      $or: [{ email: identifier }, { phcode: identifier }],
+    });
 
-        // 🔹 Verify password and get token
-        const { token } = await verifyPasswordAndGenerateToken(user, password);
+      console.log("DB USER PASSWORD HASH:", user.password);
+      console.log("COMPARE RESULT:", await verifyPassword(password, user.password));
 
-        res.status(200).json({ token, user });
-    } catch (error) {
-        res.status(400).json({ message: error.message });
+      console.log("LOGIN RAW PASSWORD:", JSON.stringify(password));
+      console.log("LOGIN PASSWORD LENGTH:", password.length);
+
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid credentials" });
     }
+
+    const isMatch = await verifyPassword(password, user.password);
+
+    console.log("LOGIN DEBUG:", {
+      entered: password,
+      hash: user.password,
+      match: isMatch,
+    });
+
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    const token = generateToken(user);
+
+    res.status(200).json({ token, user });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 
 
 const resetUserPassword = async (req, res) => {
-    try {
-        const { phcode, password, confirmPassword } = req.body;
-        if (password !== confirmPassword) {
-            return res.status(400).json({ message: "Passwords do not match" });
-        }
+  try {
+    const { phcode, password, confirmPassword } = req.body;
 
-        const user = await User.findOne({ phcode });
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        const { hashedPassword } = await generateTokenPassword(user, password);
-        user.password = hashedPassword;
-        await user.save();
-
-        res.status(200).json({ message: "Password reset successfully" });
- 
-    } catch (error) {
-        return res.status(500).json({ message: "Server Error" });
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: "Passwords do not match" });
     }
+
+    const user = await User.findOne({ phcode });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.password = await hashPassword(password);
+
+    await user.save();
+
+    res.status(200).json({ message: "Password reset successfully" });
+
+  } catch (error) {
+    res.status(500).json({ message: "Server Error" });
+  }
 };
 
 
@@ -105,10 +131,11 @@ const forgotPassword = async (req, res) => {
       const resetTokenExpires = Date.now() + 3600000; // Token expires in 1 hour
   
       // Store token in user model
-      user.resetToken = hashedToken;
-      user.resetTokenExpires = resetTokenExpires;
-      await user.save();
-  
+      await User.findByIdAndUpdate(user._id, {
+        resetToken: hashedToken,
+        resetTokenExpires: resetTokenExpires,
+      });
+        
       // Send email with reset link
       const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
       const mailOptions = {
@@ -135,37 +162,42 @@ const forgotPassword = async (req, res) => {
 const resetPasswordWithToken = async (req, res) => {
   try {
     const { password, confirmPassword } = req.body;
-    const { token } = req.params; // Extract token from URL
+    const { token } = req.params;
 
     if (password !== confirmPassword) {
       return res.status(400).json({ message: "Passwords do not match" });
     }
 
-    // Hash the token before searching in DB
+    console.log("RESET RAW PASSWORD:", JSON.stringify(password));
+    console.log("RESET PASSWORD LENGTH:", password.length);
+
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-    // Find user with valid reset token
-    const user = await User.findOne({
-      resetToken: hashedToken,
-      resetTokenExpires: { $gt: Date.now() }, // Check if token is still valid
-    });
+    const user = await User.findOneAndUpdate(
+      {
+        resetToken: hashedToken,
+        resetTokenExpires: { $gt: Date.now() },
+      },
+      {
+        $set: {
+          password: await hashPassword(password),
+          resetToken: null,
+          resetTokenExpires: null,
+        },
+      },
+      { new: true }
+    );
 
     if (!user) {
       return res.status(400).json({ message: "Invalid or expired token" });
     }
 
-    // Hash new password
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(password, salt);
-
-    // Clear reset token fields
-    user.resetToken = null;
-    user.resetTokenExpires = null;
-    await user.save();
+    console.log("RESET SUCCESS:", user.phcode);
 
     return res.status(200).json({ message: "Password reset successful" });
+
   } catch (error) {
-    console.error("Reset Password Error:", error);
+    console.error(error);
     return res.status(500).json({ message: "Server Error" });
   }
 };

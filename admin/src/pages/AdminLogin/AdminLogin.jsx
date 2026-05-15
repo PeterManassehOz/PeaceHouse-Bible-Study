@@ -23,18 +23,28 @@ const AdminLogin = () => {
  
  
    const onSubmit = async (data) => {
-     try {
-       const response = await loginAdmin(data).unwrap();
-       localStorage.setItem('token', response.token);
-       localStorage.setItem('email', data.email); // Store email in localStorage
+  try {
+    const response = await loginAdmin(data).unwrap();
 
-       toast.success('Login successful');
-       navigate('/admin-dashboard'); 
-     } catch (error) {
-       console.error(error);
-       toast.error(error?.data?.message || "Login failed");
-     }
-   };
+    localStorage.setItem("token", response.token);
+    localStorage.setItem("email", response.email);
+    localStorage.setItem("isAdmin", response.isAdmin);
+    localStorage.setItem("isChiefAdmin", response.isChiefAdmin);
+
+    toast.success("Login successful");
+
+    // 🔥 CRITICAL CHECK
+    if (!response.isAdmin) {
+      navigate("/admin-pending");
+      return;
+    }
+
+    navigate("/admin-dashboard");
+  } catch (error) {
+    console.error(error);
+    toast.error(error?.data?.message || "Login failed");
+  }
+};
  
    return (
      <div className="min-h-screen flex items-center justify-center bg-white">

@@ -1,5 +1,5 @@
 const Admin = require('../models/admin.model');
-const { verifyPasswordAndGenerateToken, generateTokenPassword } = require('../utils/generateTokenPassword');
+const { verifyPassword, generateToken, hashPassword } = require('../utils/generateTokenPassword');
 
 
 
@@ -11,16 +11,13 @@ exports.registerChiefAdmin = async (req, res) => {
     const { name, email, password } = req.body;
 
     try {
-        // Check if a Chief Admin already exists
         const existingChief = await Admin.findOne({ isChiefAdmin: true });
         if (existingChief) {
             return res.status(400).json({ message: "A Chief Admin already exists." });
         }
 
-        // Hash password first before creating the admin
-        const { hashedPassword } = await generateTokenPassword({}, password);
+        const hashedPassword = await hashPassword(password);
 
-        // Create new Chief Admin
         const chiefAdmin = await Admin.create({
             name,
             email,
@@ -29,8 +26,7 @@ exports.registerChiefAdmin = async (req, res) => {
             isChiefAdmin: true,
         });
 
-        // Now generate token using the created chiefAdmin
-        const { token } = await generateTokenPassword(chiefAdmin, password);
+        const token = generateToken(chiefAdmin);
 
         res.status(201).json({
             name: chiefAdmin.name,
@@ -39,6 +35,7 @@ exports.registerChiefAdmin = async (req, res) => {
             isChiefAdmin: chiefAdmin.isChiefAdmin,
             token,
         });
+
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -59,8 +56,13 @@ exports.adminLogin = async (req, res) => {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
 
-        // Verify password and generate token
-        const { token } = await verifyPasswordAndGenerateToken(admin, password);
+        const isMatch = await verifyPassword(password, admin.password);
+
+        if (!isMatch) {
+            return res.status(401).json({ message: "Invalid email or password" });
+        }
+
+        const token = generateToken(admin);
 
         res.json({
             name: admin.name,
@@ -82,21 +84,18 @@ exports.adminSignup = async (req, res) => {
     const { name, email, password } = req.body;
 
     try {
-        // Check if admin already exists
         const existingAdmin = await Admin.findOne({ email });
         if (existingAdmin) {
             return res.status(400).json({ message: "Admin already exists." });
         }
 
-        // Hash password
-        const { hashedPassword } = await generateTokenPassword({}, password);
+        const hashedPassword = await hashPassword(password);
 
-        // Create new admin (but not yet approved)
         const newAdmin = await Admin.create({
             name,
             email,
             password: hashedPassword,
-            isAdmin: false,  // 🚨 Not an admin yet!
+            isAdmin: false,
             isChiefAdmin: false
         });
 
@@ -107,6 +106,7 @@ exports.adminSignup = async (req, res) => {
             isAdmin: newAdmin.isAdmin,
             isChiefAdmin: newAdmin.isChiefAdmin
         });
+
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

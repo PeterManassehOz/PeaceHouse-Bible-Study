@@ -6,12 +6,11 @@ import * as yup from 'yup';
 import { toast } from 'react-toastify';
 import { useGetStudyByIdQuery, useUpdateStudyMutation } from '../../redux/adminStudyAuthApi/adminStudyAuthApi';
 import Loader from '../Loader/Loader';
-import Error from '../Error/Error';
 import ReactMarkdown from 'react-markdown';
 import { IoIosArrowBack } from 'react-icons/io';
 import { AiOutlineClose } from 'react-icons/ai';
 
-// Validation Schema using Yup
+// Validation Schema
 const studySchema = yup.object().shape({
   title: yup.string().required('Title is required'),
   author: yup.string().required('Author is required'),
@@ -32,9 +31,6 @@ const EditStudy = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [outlinePreview, setOutlinePreview] = useState('');
 
-
-
-  // React Hook Form
   const {
     register,
     handleSubmit,
@@ -45,194 +41,187 @@ const EditStudy = () => {
     resolver: yupResolver(studySchema),
   });
 
-  // Watch outline field and update preview
   useEffect(() => {
-    const subscription = watch((value) => setOutlinePreview(value.outline || ''));
-    return () => subscription.unsubscribe();
+    const sub = watch((v) => setOutlinePreview(v.outline || ''));
+    return () => sub.unsubscribe();
   }, [watch]);
 
-  // Format date to 'YYYY-MM-DD'
-  const formatDate = (dateString) => (dateString ? dateString.split('T')[0] : '');
+  const formatDate = (d) => (d ? d.split('T')[0] : '');
 
   useEffect(() => {
     if (!study) return;
-  
-    const {
-      title,
-      author,
-      date,
-      category,
-      description,
-      outline,
-      image: imagePath,
-    } = study;
-  
+
     reset({
-      title: title || '',
-      author: author || '',
-      date: formatDate(date),
-      category: category || '',
-      description: description || '',
-      outline: outline || '',
+      title: study.title || '',
+      author: study.author || '',
+      date: formatDate(study.date),
+      category: study.category || '',
+      description: study.description || '',
+      outline: study.outline || '',
     });
-  
-    if (imagePath) {
-      setImage(imagePath ? `http://localhost:5000/${imagePath}` : null);
+
+    if (study.image) {
+      setImage(`http://localhost:5000/${study.image}`);
     }
   }, [study, reset]);
-  
 
-  const handleImageChange = (event) => {
-    const file = event.target.files[0];
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
     if (file) {
       setSelectedFile(file);
-      setImage(URL.createObjectURL(file)); // Preview selected image
+      setImage(URL.createObjectURL(file));
     }
   };
 
   const handleRemoveImage = () => {
     setImage(null);
     setSelectedFile(null);
-    if (imageRef.current) {
-      imageRef.current.value = ''; // Reset file input
-    }
+    if (imageRef.current) imageRef.current.value = '';
   };
-
 
   const onSubmit = async (data) => {
     try {
       const formDataToSend = new FormData();
-      Object.entries(data).forEach(([key, value]) => {
-        formDataToSend.append(key, value);
-      });
-  
-      if (selectedFile) {
-        formDataToSend.append('image', selectedFile);
-      }
-  
+      Object.entries(data).forEach(([k, v]) => formDataToSend.append(k, v));
+
+      if (selectedFile) formDataToSend.append('image', selectedFile);
+
       await updateStudy({ id, studyData: formDataToSend }).unwrap();
-      
-      toast.success('Study updated successfully'); // Single success toast
-  
+
+      toast.success('Study updated successfully');
       refetch();
       navigate('/admin-dashboard');
-    } catch (error) {
-      console.error('Update error:', error);
-      toast.error(error?.data?.message || 'Failed to update study'); // Single error toast
+    } catch (err) {
+      toast.error(err?.data?.message || 'Update failed');
     }
   };
-  
+
   if (isLoading) return <Loader />;
 
-
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-6">
 
-      {/* Back Button */}
-      <button 
-        onClick={() => navigate('/admin-dashboard')}
-        className="flex items-center gap-2 text-white bg-green-900 hover:bg-green-300 py-4 px-4 rounded-full cursor-pointer"
-      >
-        <IoIosArrowBack className="text-xl" />
-      </button>
-      
-      <h2 className="text-2xl font-bold mb-4 text-center">Edit Study</h2>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {/* HEADER */}
+      <div className="max-w-5xl mx-auto mb-6 flex items-center justify-between bg-white/80 backdrop-blur-md rounded-2xl px-5 py-4 shadow-sm">
         <div>
-          <label className="block font-medium text-gray-700">Title</label>
-          <input {...register('title')} className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
-          <p className="text-red-500">{errors.title?.message}</p>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-800">Edit Study</h2>
+          <p className="text-sm text-gray-500">Update study details and content</p>
         </div>
 
-        <div>
-          <label className="block font-medium text-gray-700">Author</label>
-          <input {...register('author')} className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
-          <p className="text-red-500">{errors.author?.message}</p>
-        </div>
+        <button
+          onClick={() => navigate('/admin-dashboard')}
+          className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-full transition"
+        >
+          <IoIosArrowBack />
+          Back
+        </button>
+      </div>
 
-        <div>
-          <label className="block font-medium text-gray-700">Date</label>
-          <input type="date" {...register('date')} className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
-          <p className="text-red-500">{errors.date?.message}</p>
-        </div>
+      {/* CONTENT GRID */}
+      <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        <div>
-          <label className="block font-medium text-gray-700">Category</label>
-          <input {...register('category')} className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
-          <p className="text-red-500">{errors.category?.message}</p>
-        </div>
+        {/* FORM */}
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6 space-y-4">
 
-        <div>
-          <label className="block font-medium text-gray-700">Description</label>
-          <textarea {...register('description')} className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 h-32" />
-          <p className="text-red-500">{errors.description?.message}</p>
-        </div>
-
-        <div>
-          <label className="block font-medium text-gray-700">Outline</label>
-          <textarea
-            {...register('outline')}
-            className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 h-32"
-            rows={5}
-          />
-          <p className="text-red-500">{errors.outline?.message}</p>
-        </div>
-
-      
-      {/* Choose Image Button */}
-        <label className="block w-full cursor-pointer">
-          <span className="w-28 md:w-32 text-white bg-orange-700 hover:bg-orange-400 px-4 py-2 rounded-md text-xs md:text-sm text-center block transition">
-            Choose File
-          </span>
-          <input
-            type="file"
-            className="hidden"
-            accept=".jpg, .jpeg, .png"
-            ref={imageRef}
-            onChange={handleImageChange}
-          />
-        </label>
-  
-        {/* Image Preview (Only shows inside the form before submission) */}
-        {image && (
-          <div className="relative w-20 h-20 mt-2">
-            <img
-              src={image}
-              alt="Selected"
-              className="w-full h-full rounded-md border"
-            />
-            {/* Remove Image Icon */}
-            <button
-              type="button"
-              onClick={handleRemoveImage}
-              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full cursor-pointer p-1"
-            >
-              <AiOutlineClose size={12} />
-            </button>
+          {/* GRID INPUTS */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <Input label="Title" register={register('title')} error={errors.title} />
+            <Input label="Author" register={register('author')} error={errors.author} />
           </div>
-        )}
-  
 
-        <div className="flex justify-between">
+          <div className="grid md:grid-cols-2 gap-4">
+            <Input label="Category" register={register('category')} error={errors.category} />
+            <Input type="date" register={register('date')} error={errors.date} />
+          </div>
+
+          {/* TEXTAREAS */}
+          <Textarea label="Description" register={register('description')} error={errors.description} />
+
+          <Textarea
+            label="Outline"
+            register={register('outline')}
+            error={errors.outline}
+            onChange={(e) => setOutlinePreview(e.target.value)}
+          />
+
+          {/* IMAGE UPLOAD */}
+          <div className="flex items-center gap-4 flex-wrap">
+
+            <label className="cursor-pointer bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 rounded-xl transition">
+              Choose Image
+              <input
+                type="file"
+                className="hidden"
+                ref={imageRef}
+                accept=".jpg,.jpeg,.png"
+                onChange={handleImageChange}
+              />
+            </label>
+
+            {image && (
+              <div className="relative">
+                <img
+                  src={image}
+                  alt="preview"
+                  className="w-16 h-16 rounded-xl object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+                >
+                  <AiOutlineClose size={12} />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* SUBMIT */}
           <button
-            type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer"
+            onClick={handleSubmit(onSubmit)}
+            className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl transition font-medium"
           >
             Update Study
           </button>
         </div>
-      </form>
 
-
-        {/* Markdown Preview for Outline */}
-        <div>
-          <h3 className="font-medium text-gray-700">Outline Preview</h3>
-          <div className="p-4 border rounded-lg bg-gray-100">
+        {/* PREVIEW */}
+        <div className="bg-white rounded-2xl shadow-sm p-5 h-fit sticky top-6">
+          <h3 className="font-semibold text-gray-700 mb-3">Outline Preview</h3>
+          <div className="prose prose-sm max-w-none bg-gray-50 p-4 rounded-xl">
             <ReactMarkdown>{outlinePreview}</ReactMarkdown>
           </div>
         </div>
+
+      </div>
     </div>
   );
 };
+
+/* INPUT */
+const Input = ({ label, register, error, type = "text" }) => (
+  <div>
+    <input
+      type={type}
+      placeholder={label}
+      {...register}
+      className="w-full p-3 rounded-xl bg-gray-50 border-none focus:ring-2 focus:ring-green-400 outline-none transition"
+    />
+    {error && <p className="text-red-500 text-sm mt-1">{error.message}</p>}
+  </div>
+);
+
+/* TEXTAREA */
+const Textarea = ({ label, register, error, onChange }) => (
+  <div>
+    <textarea
+      placeholder={label}
+      {...register}
+      onChange={onChange}
+      className="w-full p-3 h-28 rounded-xl bg-gray-50 border-none focus:ring-2 focus:ring-green-400 outline-none transition"
+    />
+    {error && <p className="text-red-500 text-sm mt-1">{error.message}</p>}
+  </div>
+);
 
 export default EditStudy;

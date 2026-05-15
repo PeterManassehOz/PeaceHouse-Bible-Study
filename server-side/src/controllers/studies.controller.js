@@ -344,9 +344,36 @@ exports.getUserActivityByAdmin = async (req, res) => {
 
         console.log("Admin fetching activities for user:", id); // Debugging step
 
-        const inProgressStudies = await Study.find({ readingBy: id }).select("title author category");
-        const completedStudies = await Study.find({ completedBy: id }).select("title author category");
-        const downloadedStudies = await Study.find({ downloadedBy: id }).select("title author category");
+        const inProgressStudies = await Study.find({ readingBy: id }).select(`
+        title
+        author
+        category
+        image
+        description
+        outline
+        date
+        downloads
+        `);
+        const completedStudies = await Study.find({ completedBy: id }).select(`
+        title
+        author
+        category
+        image
+        description
+        outline
+        date
+        downloads
+        `);
+        const downloadedStudies = await Study.find({ downloadedBy: id }).select(`
+        title
+        author
+        category
+        image
+        description
+        outline
+        date
+        downloads
+        `);
 
         res.status(200).json({ inProgress: inProgressStudies, completed: completedStudies, downloaded: downloadedStudies });
     } catch (error) {
@@ -412,24 +439,36 @@ exports.markStudyCompleted = async (req, res) => {
 // Controller to get completed studies
 exports.getMarkStudyCompleted = async (req, res) => {
     try {
-        const userId = req.user?.id; // Ensure user ID is correctly extracted
+        const userId = req.user?.id;
+
         console.log("Logged-in User ID:", userId);
 
         if (!userId) {
-            return res.status(401).json({ message: "Unauthorized: No user ID found" });
+            return res.status(401).json({
+                message: "Unauthorized: No user ID found"
+            });
         }
 
-        const completedStudies = await Study.find({ completedBy: userId });
+        const completedStudies = await Study.find({
+            completedBy: userId
+        });
+
         console.log("Completed Studies:", completedStudies);
 
+        // ✅ Return empty array instead of 404
         if (completedStudies.length === 0) {
-            return res.status(404).json({ message: "No completed studies found" });
+            return res.status(200).json([]);
         }
 
         res.status(200).json(completedStudies);
+
     } catch (error) {
-        console.error("Error fetching completed studies:", error); // Log the error to see details
-        res.status(500).json({ message: "Error fetching completed studies", error: error.message });
+        console.error("Error fetching completed studies:", error);
+
+        res.status(500).json({
+            message: "Error fetching completed studies",
+            error: error.message
+        });
     }
 };
 
@@ -463,23 +502,31 @@ exports.getMarkStudyInProgress = async (req, res) => {
         const userId = req.user?.id;
 
         if (!userId) {
-            return res.status(401).json({ message: "Unauthorized: No user ID found" });
+            return res.status(401).json({
+                message: "Unauthorized: No user ID found"
+            });
         }
 
         // Fetch studies where the user has started but not completed
-        const inProgressStudies = await Study.find({ 
-            readingBy: userId, 
-            completedBy: { $ne: userId } // Exclude studies marked as completed
+        const inProgressStudies = await Study.find({
+            readingBy: userId,
+            completedBy: { $ne: userId }
         });
 
+        // ✅ Return empty array instead of 404
         if (inProgressStudies.length === 0) {
-            return res.status(404).json({ message: "No studies in progress found" });
+            return res.status(200).json([]);
         }
 
         res.status(200).json(inProgressStudies);
+
     } catch (error) {
         console.error("Error fetching in-progress studies:", error);
-        res.status(500).json({ message: "Error fetching in-progress studies", error: error.message });
+
+        res.status(500).json({
+            message: "Error fetching in-progress studies",
+            error: error.message
+        });
     }
 };
 
@@ -564,17 +611,25 @@ exports.getUserDownloads = async (req, res) => {
     try {
         const userId = req.user.id;
 
-        // Find all studies where the user is in the 'downloadedBy' array
-        const downloadedStudies = await Study.find({ downloadedBy: userId });
+        // Find all studies where the user is in the downloadedBy array
+        const downloadedStudies = await Study.find({
+            downloadedBy: userId
+        });
 
+        // ✅ Return empty array instead of 404
         if (downloadedStudies.length === 0) {
-            return res.status(404).json({ message: "No downloaded studies found" });
+            return res.status(200).json([]);
         }
 
         res.status(200).json(downloadedStudies);
+
     } catch (error) {
         console.error("Error fetching downloaded studies:", error);
-        res.status(500).json({ message: "Server error", error: error.message });
+
+        res.status(500).json({
+            message: "Server error",
+            error: error.message
+        });
     }
 };
 
@@ -583,16 +638,41 @@ exports.getUserDashboard = async (req, res) => {
     try {
         const userId = req.user.id;
 
-        const completedStudies = await Study.find({ completedBy: userId }).select("title author category");
-        
+        const completedStudies = await Study.find({ completedBy: userId }).select(`
+        title
+        author
+        category
+        image
+        description
+        outline
+        date
+        downloads
+        `);
         // Ensure only in-progress studies (not completed) are fetched
         const inProgressStudies = await Study.find({ 
             readingBy: userId, 
             completedBy: { $ne: userId }  // Exclude completed studies
-        }).select("title author category");
+        }).select(`
+            title
+            author
+            category
+            image
+            description
+            outline
+            date
+            downloads
+            `);
 
-        const downloadedStudies = await Study.find({ downloadedBy: userId }).select("title author category");
-
+        const downloadedStudies = await Study.find({ downloadedBy: userId }).select(`
+            title
+            author
+            category
+            image
+            description
+            outline
+            date
+            downloads
+            `);
         // Explicitly mark modified fields to ensure Mongoose tracks changes properly
         completedStudies.forEach(study => study.markModified("completedBy"));
         inProgressStudies.forEach(study => study.markModified("readingBy"));
@@ -610,71 +690,101 @@ exports.getUserDashboard = async (req, res) => {
 
 
 exports.getPlatformStatistics = async (req, res) => {
-    try {
-        const stats = await Study.aggregate([
-            // Project necessary fields and compute values
-            {
-                $project: {
-                    totalComments: { $size: "$comments" },  // Count comments array
-                    totalReactions: { $size: { $ifNull: ["$reactions", []] } }, // Count reactions
-                    totalDownloads: "$downloads",  // Sum of downloads field
-                    isCompleted: { $gt: [{ $size: "$completedBy" }, 0] },  // Check if completedBy has users
-                    isReading: { $gt: [{ $size: "$readingBy" }, 0] },  // Check if readingBy has users
-                    completedBy: 1,
-                    readingBy: 1,
-                    comments: 1,
-                }
+  try {
+    const stats = await Study.aggregate([
+      // 1. Project required fields
+      {
+        $project: {
+          totalComments: { $size: "$comments" },
+          totalReactions: { $size: { $ifNull: ["$reactions", []] } },
+          totalDownloads: "$downloads",
+          isCompleted: { $gt: [{ $size: "$completedBy" }, 0] },
+          isReading: { $gt: [{ $size: "$readingBy" }, 0] },
+          completedBy: 1,
+          readingBy: 1,
+          comments: 1,
+        },
+      },
+
+      // 2. Flatten comments
+      {
+        $unwind: {
+          path: "$comments",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      // 3. Filter valid comments
+      {
+        $match: {
+          "comments.text": { $exists: true, $ne: "" },
+        },
+      },
+
+      // 4. Populate user
+      {
+        $lookup: {
+          from: "users",
+          localField: "comments.userId",
+          foreignField: "_id",
+          as: "comments.user",
+        },
+      },
+
+      // 5. Flatten user array
+      {
+        $addFields: {
+          "comments.user": { $arrayElemAt: ["$comments.user", 0] },
+        },
+      },
+
+      // 6. Group everything back
+      {
+        $group: {
+          _id: null,
+          totalStudies: { $sum: 1 },
+          totalComments: { $sum: 1 },
+          totalReactions: { $sum: "$totalReactions" },
+          totalDownloads: { $sum: "$totalDownloads" },
+          totalCompleted: { $sum: { $cond: ["$isCompleted", 1, 0] } },
+          totalOngoing: { $sum: { $cond: ["$isReading", 1, 0] } },
+
+          allComments: { $push: "$comments" },
+          allCompletedBy: { $push: "$completedBy" },
+          allReadingBy: { $push: "$readingBy" },
+        },
+      },
+
+      // 7. Sort comments by latest
+      {
+        $addFields: {
+          allComments: {
+            $sortArray: {
+              input: "$allComments",
+              sortBy: { createdAt: -1 },
             },
+          },
+        },
+      },
+    ]);
 
-            // Unwind comments to join with user data
-            { $unwind: { path: "$comments", preserveNullAndEmptyArrays: true } },
-
-                       // **NEW**: Filter out comments without actual text
-                       {
-                        $match: {
-                            "comments.text": { $exists: true, $ne: "" } // Ensure comment text exists and is not empty
-                        }
-                    },
-
-            // Lookup user details for comments
-            {
-                $lookup: {
-                    from: "users",  // User collection
-                    localField: "comments.userId",
-                    foreignField: "_id",
-                    as: "comments.user"
-                }
-            },
-
-            // Group everything back together
-            {
-                $group: {
-                    _id: null, 
-                    totalStudies: { $sum: 1 },  
-                    totalComments: { $sum: "$totalComments" },  
-                    totalReactions: { $sum: "$totalReactions" },  
-                    totalDownloads: { $sum: "$totalDownloads" },  
-                    totalCompleted: { $sum: { $cond: ["$isCompleted", 1, 0] } },  
-                    totalOngoing: { $sum: { $cond: ["$isReading", 1, 0] } },  
-                    allComments: { $push: "$comments" },  // Collect all comments after lookup
-                    allCompletedBy: { $push: "$completedBy" },  
-                    allReadingBy: { $push: "$readingBy" }  
-                }
-            }
-        ]);
-
-        res.status(200).json(stats[0] || {
-            totalStudies: 0,
-            totalComments: 0,
-            totalReactions: 0,
-            totalDownloads: 0,
-            totalCompleted: 0,
-            totalOngoing: 0,
-            allComments: [],
-            allCompletedBy: [],
-            allReadingBy: []
-        });
-    } catch (error) {
-        res.status(500).json({ message: "Server error", error: error.message });
-    }
+    res.status(200).json(
+      stats[0] || {
+        totalStudies: 0,
+        totalComments: 0,
+        totalReactions: 0,
+        totalDownloads: 0,
+        totalCompleted: 0,
+        totalOngoing: 0,
+        allComments: [],
+        allCompletedBy: [],
+        allReadingBy: [],
+      }
+    );
+  } catch (error) {
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };

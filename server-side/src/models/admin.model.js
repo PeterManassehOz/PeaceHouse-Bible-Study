@@ -4,7 +4,7 @@ const AdminSchema = new mongoose.Schema({
     name: { type: String, required: true },
     email: { type: String, unique: true, required: true },
     password: { type: String, required: true },
-    isAdmin: { type: Boolean, default: true },
+    isAdmin: { type: Boolean, default: false },
     isChiefAdmin: { type: Boolean, default: false }
 });
 

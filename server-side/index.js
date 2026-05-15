@@ -11,10 +11,14 @@ const path = require("path");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // For form data (text fields)
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:5174'], // Corrected the protocol
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  }));
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'https://your-client.vercel.app',
+    'https://your-admin.vercel.app'
+  ],
+  credentials: true,
+}));
   
 app.use("/uploads", express.static(path.join(__dirname, "src/uploads")));
 app.use("/uploads/images", express.static(path.join(__dirname, "uploads/images")));
