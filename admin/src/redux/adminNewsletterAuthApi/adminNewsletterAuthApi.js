@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 export const newsLetterAuthApi = createApi({
   reducerPath: "newsletterApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: "http://localhost:5000/newsletter",
+    baseUrl: "VITE_API_URL/newsletter",
     prepareHeaders: (headers) => {
       const token = localStorage.getItem("token"); // or however you store it
       if (token) {
