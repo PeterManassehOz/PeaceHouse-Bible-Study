@@ -23,3 +23,10 @@ build/
 # Vite / React
 client-side/dist/
 admin/dist/
+
+# 
+server-side/google-cloud-key.json
+
+.env
+.env.local
+.env.production
