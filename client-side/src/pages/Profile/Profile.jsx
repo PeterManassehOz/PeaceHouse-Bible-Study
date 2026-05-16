@@ -15,7 +15,7 @@ import Loader from "../../components/Loader/Loader";
 
 
 const Profile = () => {
-  const { userProfile, profileImageUrl, isLoading: Loading, error } = useUserProfile(); // Use the hook
+  const { userProfile, isLoading: Loading, error } = useUserProfile();
   //Mutation for updating profile
   const [updateProfile, { isLoading }] = useUpdateProfileMutation();
   const [_showError, setShowError] = useState(false);
@@ -102,7 +102,10 @@ const Profile = () => {
         {/* Profile Preview */}
         <div className="flex flex-col items-center w-full md:w-1/2 p-4 rounded-lg">
         <img
-          src={profileImageUrl}
+          src={
+            userProfile?.image ||
+            "https://via.placeholder.com/150"
+          }
           alt="Profile"
           className="w-28 h-28 md:w-40 md:h-40 object-cover rounded-full shadow-md"
         />

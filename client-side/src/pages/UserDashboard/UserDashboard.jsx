@@ -14,7 +14,7 @@ import useUserProfile from "../../hooks/useUserProfile";
 import UserAggregator from "../../components/UserAggregator/UserAggregator";
 
 const UserDashboard = () => {
-  const { userProfile, profileImageUrl } = useUserProfile();
+  const { userProfile } = useUserProfile();
   const navigate = useNavigate();
   const [selectedComponent, setSelectedComponent] = useState(null);
 
@@ -73,7 +73,10 @@ const UserDashboard = () => {
           {/* Profile Image & Name */}
           <div className="flex flex-row items-center gap-2 mt-6">
             <img
-              src={profileImageUrl}
+              src={
+                userProfile?.image ||
+                "https://via.placeholder.com/150"
+              }
               alt="Profile"
               className="w-10 h-10 md:w-13 md:h-13 lg:w-13 lg:h-13 object-cover rounded-full shadow-md"
             />

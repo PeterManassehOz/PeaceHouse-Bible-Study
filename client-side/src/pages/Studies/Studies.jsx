@@ -23,8 +23,18 @@ const Studies = () => {
       .catch(error => console.error("Error loading studies:", error));
   }, []);*/
 
-  if (getAllStudies.length === 0) return <div className="text-center mt-20"><Loader /></div>;
+  if (isLoading) return <Loader />;
 
+  if (!getAllStudies.length) {
+    return (
+      <p className="text-center mt-20 text-gray-500">
+        No studies available yet.
+      </p>
+    );
+  }
+
+
+  
   return (
     <div className="p-6">
            {/* Back Button */}
@@ -48,7 +58,7 @@ const Studies = () => {
                   <div className="flex flex-col md:flex-row items-center gap-4">
                     {/* Image */}
                     <img
-                      src={`http://localhost:5000/${study.image}`}
+                      src={study.image}
                       alt={study.title}
                       className="w-full md:w-1/3 lg:w-1/2 object-cover rounded-lg"
                     />

@@ -1,69 +1,75 @@
 const Study = require('../models/studies.model');
-const User = require("../models/users.model");
-const mongoose = require('mongoose');
-const path = require('path'); 
-const fs = require("fs");
-const mime = require("mime-types");
-
+const uploadToGCS = require("../utils/uploadToGCS");
 
 // 📌 Create a new study
 
 exports.createStudy = async (req, res) => {
-    try {
-        console.log("📩 Request received:", req.body);
-        console.log("📂 Uploaded files:", req.files);  
-
-        if (!req.files || !req.files.image || !req.files.file || !req.body.outline) {
-            console.error("❌ Missing required files");
-            return res.status(400).json({ message: 'Both image, outline and study document are required' });
-        }
-
-        // Extract uploaded files
-        const imageFile = req.files.image[0];
-        const studyFile = req.files.file[0];
-
-          // Convert paths to forward slashes (for logging only)
-          const imagePath = imageFile.path.replace(/\\/g, "/");
-          const studyFilePath = studyFile.path.replace(/\\/g, "/");
-
-          
-        console.log(`🖼️ Image Path (formatted): ${imagePath}`);
-        console.log(`📄 Study File Path (formatted): ${studyFilePath}`);
-
-
-        const study = new Study({
-            userId: req.user.id, // The logged-in user creating the study
-            title: req.body.title,
-            description: req.body.description,
-            date: req.body.date,
-            author: req.body.author,
-            category: req.body.category,
-            outline: req.body.outline,
-            downloads: 0,
-            image: imageFile.path.replace(/\\/g, "/"), // Convert backslashes to forward slashes
-            filePath: `uploads/files/${studyFile.filename}`
-        });
-
-        // Check if the file exists
-        fs.access(studyFile.path, fs.constants.F_OK, (err) => {
-            if (err) {
-                console.error(`❌ Uploaded file is missing: ${err.message}`);
-            } else {
-                console.log("✅ Uploaded file exists and is accessible");
-            }
-        });
-
-        await study.save();
-        console.log("🎉 Study created successfully!");
-
-        res.status(201).json({ message: "Study created successfully", study });
-
-    } catch (error) {
-        console.error(`❌ Error creating study: ${error.message}`);
-        res.status(500).json({ message: "Server error", error: error.message });
+  try {
+    console.log("📩 Request body:", req.body);
+    console.log("📂 Uploaded files:", req.files);
+    console.log("REQ HEADERS:", req.headers["content-type"]);
+    if (
+      !req.files ||
+      !req.files.image ||
+      !req.files.file
+    ) {
+      return res.status(400).json({
+        message: "Image and study file are required",
+      });
     }
-};
 
+    // Upload image to Google Cloud Storage
+    const imageUrl = await uploadToGCS(
+      req.files.image[0],
+      "study-images"
+    );
+
+    // Upload study file to Google Cloud Storage
+    const fileUrl = await uploadToGCS(
+      req.files.file[0],
+      "study-files"
+    );
+
+    const study = new Study({
+      userId: req.user._id,
+
+      title: req.body.title,
+      description: req.body.description,
+      date: req.body.date,
+      author: req.body.author,
+      category: req.body.category,
+      outline: req.body.outline,
+      status: req.body.status,
+
+      downloads: 0,
+
+      image: imageUrl,
+
+      filePath: fileUrl,
+
+      fileType: req.files.file[0].mimetype,
+
+      studyCompleted: true,
+    });
+
+    await study.save();
+
+    console.log("✅ Study created successfully");
+
+    res.status(201).json({
+      message: "Study created successfully",
+      study,
+    });
+
+  } catch (error) {
+    console.error("❌ Create study error:", error);
+
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
 
 // 📌 Get all studies
 exports.getAllStudies = async (req, res) => {
@@ -96,47 +102,81 @@ exports.getSingleStudyById = async (req, res) => {
 
 // 📌 Update a study
 exports.updateStudy = async (req, res) => {
-    try {
-        const study = await Study.findById(req.params.id);
+  try {
+    const study = await Study.findById(req.params.id);
 
-        if (!study) {
-            return res.status(404).json({ message: "Study not found" });
-        }
-
-        // Check if the logged-in user is the owner of the study
-        if (study.userId.toString() !== req.user.id) {
-            return res.status(403).json({ message: "Not authorized to update this study" });
-        }
-
-        // Update fields if provided
-        const updatedFields = {
-            title: req.body.title || study.title,
-            description: req.body.description || study.description,
-            outline: req.body.outline || study.outline,
-            date: req.body.date || study.date,
-            author: req.body.author || study.author,
-            category: req.body.category || study.category,
-            fileType: req.body.fileType || study.fileType,
-        };
-
-        // If new files are uploaded, update them
-        if (req.files) {
-            if (req.files.image) {
-                updatedFields.image = req.files.image[0].path.replace(/\\/g, "/");
-            }
-            if (req.files.file) {
-                updatedFields.filePath = req.files.file[0].path.replace(/\\/g, "/");
-            }
-        }
-
-        const updatedStudy = await Study.findByIdAndUpdate(req.params.id, updatedFields, { new: true });
-
-        res.status(200).json({ message: "Study updated successfully", study: updatedStudy });
-
-    } catch (error) {
-        console.error("Error updating study:", error.message);
-        res.status(500).json({ message: "Server error", error: error.message });
+    if (!study) {
+      return res.status(404).json({
+        message: "Study not found",
+      });
     }
+
+    // Check ownership
+    if (study.userId.toString() !== req.user.id) {
+      return res.status(403).json({
+        message: "Not authorized to update this study",
+      });
+    }
+
+    // Update basic fields
+    study.title =
+      req.body.title || study.title;
+
+    study.description =
+      req.body.description || study.description;
+
+    study.outline =
+      req.body.outline || study.outline;
+
+    study.date =
+      req.body.date || study.date;
+
+    study.author =
+      req.body.author || study.author;
+
+    study.category =
+      req.body.category || study.category;
+
+    study.status =
+      req.body.status || study.status;
+
+    // Upload new image if provided
+    if (req.files?.image?.[0]) {
+      const imageUrl = await uploadToGCS(
+        req.files.image[0],
+        "study-images"
+      );
+
+      study.image = imageUrl;
+    }
+
+    // Upload new study file if provided
+    if (req.files?.file?.[0]) {
+      const fileUrl = await uploadToGCS(
+        req.files.file[0],
+        "study-files"
+      );
+
+      study.filePath = fileUrl;
+
+      study.fileType =
+        req.files.file[0].mimetype;
+    }
+
+    await study.save();
+
+    res.status(200).json({
+      message: "Study updated successfully",
+      study,
+    });
+  } catch (error) {
+    console.error("❌ Update study error:", error);
+
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };
 
 // 📌 Delete a study

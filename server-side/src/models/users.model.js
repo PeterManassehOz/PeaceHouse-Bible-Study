@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema({
     password: { type: String, required: true },
     bio: { type: String, default: '' },
     image: { type: String, default: '' },
+    filePath: { type: String },
     profileCompleted: { type: Boolean, default: false },
     resetToken: { type: String, default: null },
     resetTokenExpires: { type: Date, default: null },

@@ -1,3 +1,9 @@
 server-side/uploads/
 
 node_modules/
+
+uploads/
+src/uploads/
+.env
+dist/
+build/

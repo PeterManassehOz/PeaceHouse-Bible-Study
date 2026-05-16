@@ -329,7 +329,7 @@ const SingleStudy = () => {
     {currentPage === 0 && (
             <div className="flex justify-center mt-4">
               <img 
-                  src={`http://localhost:5000/${study.image}`}
+                  src={study.image}
                 alt={study.title} 
                 className="w-[200px] h-[200px] object-top object-cover rounded-lg shadow-md sm:w-[200px] sm:h-[180px] md:w-[300px] md:h-[200px]"  
               />

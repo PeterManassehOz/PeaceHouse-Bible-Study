@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Loader from "../Loader/Loader";
+import { useGetAllStudyQuery } from "../../redux/studyAuthApi/studyAuthApi";
 
-const Hero = () => {
-  const [studies, setStudies] = useState([]); // Store the full studies list
-  const [selectedStudy, setSelectedStudy] = useState(null); // Default study
+const Hero = () => {  
+  const { data: studies = [], isLoading, isError } = useGetAllStudyQuery();
+  const [selectedStudy, setSelectedStudy] = useState(null);
   const navigate = useNavigate();
 
   /*useEffect(() => {
@@ -17,19 +18,17 @@ const Hero = () => {
       .catch(error => console.error("Error loading studies:", error));
   }, []);
   */
-  
-  useEffect(() => {
-    fetch("http://localhost:5000/studies") // Fetch from backend
-      .then(response => response.json())
-      .then(data => {
-        setStudies(data);
-        setSelectedStudy(data[5]); // Default study
-      })
-      .catch(error => console.error("Error loading studies:", error));
-  }, []);
-  
+ 
 
-  if (!selectedStudy) return <Loader />; 
+  useEffect(() => {
+    if (studies.length > 0 && !selectedStudy) {
+      setSelectedStudy(studies[0]);
+    }
+  }, [studies, selectedStudy]);
+    
+
+  if (isLoading || !selectedStudy) return <Loader />;
+  if (isError) return <p>Error loading studies</p>;
 
   return (
     <section className="flex flex-col md:flex-row items-center justify-center bg-white">
@@ -55,7 +54,7 @@ const Hero = () => {
       {/* LARGE IMAGE */}
       <div className="relative w-[70%] h-64 md:h-[350px] cursor-pointer mb-6 mt-6" onClick={() => navigate(`/study/${selectedStudy._id}`)}>
           <img
-            src={`http://localhost:5000/${selectedStudy.image}`}
+            src={selectedStudy.image}
             alt={selectedStudy.title}
             className="w-full h-full object-cover rounded-lg shadow-lg"
           />
@@ -63,7 +62,7 @@ const Hero = () => {
 
       {/* SMALLER OVERLAY IMAGES (Limited to studies 4-7) */}
       <div className="absolute bottom-[-70px] md:bottom-[-100px] flex gap-4">
-        {studies.slice(5, 8).map((study, index) => ( // Show only studies 5 to 6
+        {studies.slice(2, 5).map((study, index) => ( // Show only studies 5 to 6
         <div
             key={study._id}
         className={`w-20 h-20 md:w-24 md:h-24 cursor-pointer rounded-lg shadow-md transition-all ${
@@ -73,10 +72,14 @@ const Hero = () => {
         style={{ transform: `translateY(${index % 2 === 0 ? "-30px" : "-20px"})` }} // Adjust position for staggered effect
       >
         <img
-                src={`http://localhost:5000/${study.image}`}
-                alt={study.title}
-                className="w-full h-full object-cover rounded-lg"
-              />
+          src={
+            study.image?.startsWith("http")
+              ? study.image
+              : `http://localhost:5000/${study.image}`
+          }
+          alt={study.title}
+          className="w-full h-full object-cover rounded-lg"
+        />
           </div>
         ))}
        </div>

@@ -61,7 +61,7 @@ const EditStudy = () => {
     });
 
     if (study.image) {
-      setImage(`http://localhost:5000/${study.image}`);
+      setImage(study.image);
     }
   }, [study, reset]);
 

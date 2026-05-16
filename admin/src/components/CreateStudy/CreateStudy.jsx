@@ -16,8 +16,6 @@ const studySchema = yup.object().shape({
   author: yup.string().required(),
   category: yup.string().required(),
   status: yup.string().required(),
-  image: yup.mixed().required(),
-  file: yup.mixed().required(),
 });
 
 const DRAFT_KEY = "study_draft_v1";
@@ -28,7 +26,8 @@ const CreateStudy = () => {
   const [outlinePreview, setOutlinePreview] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const [fileName, setFileName] = useState("");
-
+  const [imageFile, setImageFile] = useState(null);
+  const [studyFile, setStudyFile] = useState(null);
   const dropRef = useRef(null);
 
   const {
@@ -54,9 +53,22 @@ const CreateStudy = () => {
     }
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(watched));
-  }, [watched]);
+ useEffect(() => {
+  const draftData = {
+    title: watched.title || "",
+    description: watched.description || "",
+    date: watched.date || "",
+    outline: watched.outline || "",
+    author: watched.author || "",
+    category: watched.category || "",
+    status: watched.status || "",
+  };
+
+  localStorage.setItem(
+    DRAFT_KEY,
+    JSON.stringify(draftData)
+  );
+}, [watched]);
 
   /* ---------------- DRAG & DROP IMAGE ---------------- */
   useEffect(() => {
@@ -86,28 +98,53 @@ const CreateStudy = () => {
 
   /* ---------------- SUBMIT ---------------- */
   const onSubmit = async (data) => {
+  try {
+    if (!imageFile || !studyFile) {
+      toast.error("Image and study file are required");
+      return;
+    }
+
     const formData = new FormData();
 
-    Object.entries({
-      title: data.title,
-      description: data.description,
-      date: data.date,
-      author: data.author,
-      category: data.category,
-      status: data.status,
-      outline: data.outline,
-    }).forEach(([k, v]) => formData.append(k, v));
+    formData.append("title", data.title);
+    formData.append("description", data.description);
+    formData.append("date", data.date);
+    formData.append("author", data.author);
+    formData.append("category", data.category);
+    formData.append("status", data.status);
+    formData.append("outline", data.outline);
 
-    if (data.image?.[0]) formData.append("image", data.image[0]);
-    if (data.file?.[0]) formData.append("file", data.file[0]);
+    // IMPORTANT
+    formData.append("image", imageFile);
+    formData.append("file", studyFile);
 
-    try {
-      await createStudy(formData).unwrap();
-      toast.success("Study created successfully!");
-      localStorage.removeItem(DRAFT_KEY);
-      reset();
+    // DEBUG
+    for (let pair of formData.entries()) {
+      console.log(pair[0], pair[1]);
+    }
+
+    await createStudy(formData).unwrap();
+
+    toast.success("Study created successfully!");
+
+    localStorage.removeItem(DRAFT_KEY);
+
+    reset();
+
+    setImagePreview(null);
+    setFileName("");
+    setOutlinePreview("");
+
+    setImageFile(null);
+    setStudyFile(null);
+
     } catch (err) {
-      toast.error(err?.data?.message || "Failed to create study");
+      console.error(err);
+
+      toast.error(
+        err?.data?.message ||
+        "Failed to create study"
+      );
     }
   };
 
@@ -132,7 +169,10 @@ const CreateStudy = () => {
             </button>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form 
+            onSubmit={handleSubmit(onSubmit)}
+            encType="multipart/form-data" className="space-y-4"
+          >
 
             {/* GRID */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -183,11 +223,17 @@ const CreateStudy = () => {
                 <input
                   type="file"
                   accept="image/*"
-                  {...register("image")}
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) setImagePreview(URL.createObjectURL(file));
+
+                    if (file) {
+                      setImageFile(file);
+
+                      setImagePreview(
+                        URL.createObjectURL(file)
+                      );
+                    }
                   }}
                 />
               </label>
@@ -198,12 +244,16 @@ const CreateStudy = () => {
                 File
                 <input
                   type="file"
-                  accept=".pdf,.docx"
-                  {...register("file")}
+                  accept=".pdf,.doc,.docx,.epub"
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) setFileName(file.name);
+
+                    if (file) {
+                      setStudyFile(file);
+
+                      setFileName(file.name);
+                    }
                   }}
                 />
               </label>

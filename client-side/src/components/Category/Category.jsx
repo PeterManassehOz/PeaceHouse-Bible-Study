@@ -29,13 +29,15 @@ const Category = () => {
   }, [categoryName]);*/
 
   useEffect(() => {
-    if (getAllStudies.length > 0) {
-      const filteredStudies = getAllStudies.filter(
-        (study) => study.category.toLowerCase() === categoryName.toLowerCase()
-      );
-      setStudies(filteredStudies);
-    }
-  }, [getAllStudies, categoryName]); // Correct dependency array
+    if (!getAllStudies) return;
+
+    const filteredStudies = getAllStudies.filter(
+      (study) =>
+        study.category?.toLowerCase() === categoryName?.toLowerCase()
+    );
+
+    setStudies(filteredStudies);
+  }, [getAllStudies, categoryName]);
 
   if (isLoading) return <Loader />;
 
@@ -65,7 +67,11 @@ const Category = () => {
                 {/* Image */}
                 <img
                   /*src={`/${study.image}`}*/
-                  src={`http://localhost:5000/${study.image}`}
+                  src={
+                    study.image?.startsWith("http")
+                      ? study.image
+                      : `http://localhost:5000/${study.image}`
+                  }
                   alt={study.title}
                   className="w-full md:w-1/3 lg:w-1/2 object-cover rounded-lg"
                 />
@@ -82,7 +88,9 @@ const Category = () => {
           ))}
         </div>
       ) : (
-       <Loader />
+        <p className="text-center mt-10 text-gray-500">
+          No studies available in this category.
+        </p>
       )}
     </div>
   );
