@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Env files
+.env
+.env.*
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+
+# Server uploads (CRITICAL)
+server-side/src/uploads/
+server-side/uploads/
+
+# Build outputs
+dist/
+build/
+
+# Vite / React
+client-side/dist/
+admin/dist/
