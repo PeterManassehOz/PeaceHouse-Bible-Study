@@ -137,16 +137,80 @@ const forgotPassword = async (req, res) => {
       });
         
       // Send email with reset link
-      const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
+      const baseUrl = process.env.CLIENT_URL || "http://localhost:5173";
+
+      const resetUrl = `${baseUrl}/reset-password/${resetToken}`;
       const mailOptions = {
         from: process.env.EMAIL_USER,
         to: user.email,
-        subject: "Password Reset Request",
+        subject: "Reset Your Password - Peace House Bible Study",
         html: `
-          <p>You requested a password reset.</p>
-          <p>Click the link below to reset your password:</p>
-          <a href="${resetUrl}">${resetUrl}</a>
-          <p>This link is valid for 1 hour.</p>
+        <div style="font-family: Arial, sans-serif; background-color: #f4f6f8; padding: 40px 0;">
+          <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08);">
+
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #16a34a, #22c55e); padding: 24px; text-align: center;">
+              <h1 style="color: white; margin: 0; font-size: 22px;">
+                Peace House Bible Study
+              </h1>
+            </div>
+
+            <!-- Body -->
+            <div style="padding: 30px; color: #333;">
+              <h2 style="margin-top: 0; color: #111;">
+                Password Reset Request
+              </h2>
+
+              <p style="font-size: 15px; line-height: 1.6;">
+                Hello <strong>${user.firstname || "there"}</strong>,
+              </p>
+
+              <p style="font-size: 15px; line-height: 1.6;">
+                We received a request to reset your password. If this was you, click the button below to continue.
+              </p>
+
+              <!-- Button -->
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${resetUrl}"
+                  style="
+                    background: #16a34a;
+                    color: #ffffff;
+                    padding: 14px 28px;
+                    border-radius: 8px;
+                    text-decoration: none;
+                    font-weight: bold;
+                    display: inline-block;
+                    font-size: 15px;
+                  ">
+                  Reset Password
+                </a>
+              </div>
+
+              <p style="font-size: 14px; color: #666; line-height: 1.6;">
+                This link will expire in <strong>1 hour</strong> for your security.
+              </p>
+
+              <p style="font-size: 14px; color: #666; line-height: 1.6;">
+                If you did not request this, you can safely ignore this email.
+              </p>
+
+              <!-- Fallback link -->
+              <p style="font-size: 12px; color: #999; margin-top: 30px;">
+                If the button doesn’t work, copy and paste this link:
+                <br />
+                <a href="${resetUrl}" style="color: #16a34a; word-break: break-all;">
+                  ${resetUrl}
+                </a>
+              </p>
+            </div>
+
+            <!-- Footer -->
+            <div style="background: #f1f5f9; text-align: center; padding: 15px; font-size: 12px; color: #777;">
+              © ${new Date().getFullYear()} Peace House Bible Study. All rights reserved.
+            </div>
+
+          </div>
+        </div>
         `,
       };
   
