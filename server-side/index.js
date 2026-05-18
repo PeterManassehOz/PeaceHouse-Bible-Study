@@ -32,6 +32,7 @@ app.use("/uploads/ebooks", express.static(path.join(__dirname, "uploads/ebooks")
 const userRoutes = require('./src/routes/users.route');
 const authRoutes = require('./src/routes/auth.route');
 const studyRoutes = require('./src/routes/studies.route');
+const adminStudyRoutes = require('./src/routes/adminStudies.route');
 const adminRoutes = require('./src/routes/admin.route');
 const newsletterRoutes = require("./src/routes/newsletter.route");
 
@@ -41,6 +42,7 @@ app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 app.use('/studies', studyRoutes);
+app.use('/admin/studies', adminStudyRoutes);
 app.use('/admin', adminRoutes);
 app.use('/newsletter', newsletterRoutes);
 

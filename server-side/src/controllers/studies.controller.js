@@ -1,6 +1,6 @@
 const Study = require('../models/studies.model');
 const uploadToGCS = require("../utils/uploadToGCS");
-
+const axios = require("axios");
 // 📌 Create a new study
 
 exports.createStudy = async (req, res) => {
@@ -205,36 +205,6 @@ exports.deleteStudy = async (req, res) => {
 
 
 
-// ✅ Mark a study as completed or not (Admin/Author only)
-exports.studyCompleted = async (req, res) => {
-    try {
-        const { id } = req.params; // Get study ID from request params
-        const { studyCompleted } = req.body; // Get new completion status from request body
-
-        // Validate studyCompleted is a boolean
-        if (typeof studyCompleted !== "boolean") {
-            return res.status(400).json({ message: "studyCompleted must be true or false." });
-        }
-
-        // Find the study by ID
-        const study = await Study.findById(id);
-        if (!study) {
-            return res.status(404).json({ message: "Study not found" });
-        }
-
-        // Update study completion status
-        study.studyCompleted = studyCompleted;
-        await study.save();
-
-        res.status(200).json({
-            message: `Study marked as ${studyCompleted ? "completed" : "not completed"}.`,
-            study
-        });
-    } catch (error) {
-        res.status(500).json({ message: "Server error", error: error.message });
-    }
-};
-
 // Add a comment
 exports.addComment = async (req, res) => {
     try {
@@ -372,55 +342,6 @@ exports.getStudyReactions = async (req, res) => {
     }
 };
 
-
-exports.getUserActivityByAdmin = async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        // Validate that the ID is a valid ObjectId
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ message: "Invalid user ID" });
-        }
-
-        console.log("Admin fetching activities for user:", id); // Debugging step
-
-        const inProgressStudies = await Study.find({ readingBy: id }).select(`
-        title
-        author
-        category
-        image
-        description
-        outline
-        date
-        downloads
-        `);
-        const completedStudies = await Study.find({ completedBy: id }).select(`
-        title
-        author
-        category
-        image
-        description
-        outline
-        date
-        downloads
-        `);
-        const downloadedStudies = await Study.find({ downloadedBy: id }).select(`
-        title
-        author
-        category
-        image
-        description
-        outline
-        date
-        downloads
-        `);
-
-        res.status(200).json({ inProgress: inProgressStudies, completed: completedStudies, downloaded: downloadedStudies });
-    } catch (error) {
-        console.error("Error fetching user activities by admin:", error.message); // Debugging
-        res.status(500).json({ message: "Server error", error: error.message });
-    }
-};
 
 exports.findUserByEmail = async (req, res) => {
     try {
@@ -596,54 +517,26 @@ exports.trackStudyDownload = async (req, res) => {
 };
 
 
-
 exports.getStudyToDownload = async (req, res) => {
     try {
-        const { id } = req.params;
-        const study = await Study.findById(id);
+        const study = await Study.findById(req.params.id);
+        if (!study) return res.status(404).json({ message: "Study not found" });
 
-        if (!study) {
-            return res.status(404).json({ message: "Study not found" });
-        }
-
-        // Normalize and resolve the file path
-        const normalizedFilePath = path.normalize(study.filePath);
-        const filePath = path.resolve(__dirname, "../../", normalizedFilePath);
-
-        console.log("📂 Final File Path:", filePath);
-
-        // Check if the file exists
-        if (!fs.existsSync(filePath)) {
-            console.error("❌ File NOT found:", filePath);
-            return res.status(404).json({ message: "File not found on server" });
-        }
-
-        console.log("✅ File found. Preparing for download...");
-
-        // Get the correct MIME type
-        const mimeType = mime.lookup(filePath) || "application/octet-stream";
-        console.log("📄 MIME Type:", mimeType);
-
-        // Set response headers
-        res.setHeader("Content-Disposition", `attachment; filename="${study.title}.pdf"`);
-        res.setHeader("Content-Type", mimeType);
-
-        // Create a readable stream and pipe it to the response
-        const fileStream = fs.createReadStream(filePath);
-
-        fileStream.on("open", () => {
-            console.log("📥 Streaming file to client...");
-            fileStream.pipe(res);
+        const response = await axios.get(study.filePath, {
+            responseType: "stream",
         });
 
-        fileStream.on("error", (err) => {
-            console.error("❌ Error reading file:", err);
-            res.status(500).json({ message: "Error reading file" });
-        });
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="${study.title}.pdf"`
+        );
+        res.setHeader("Content-Type", "application/pdf");
+
+        response.data.pipe(res);
 
     } catch (error) {
-        console.error("❌ Server error:", error);
-        res.status(500).json({ message: "Server error" });
+        console.error(error);
+        res.status(500).json({ message: "Download failed", error: error.message });
     }
 };
 

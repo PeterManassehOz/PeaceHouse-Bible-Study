@@ -221,7 +221,7 @@ const SingleStudy = () => {
 
   if (!study) return <div className="text-center mt-20"><Loader /></div>;
 
-  const fileUrl = `http://localhost:5000/${study.filePath}`;
+  const fileUrl = study.filePath;
   const fileURL = `http://localhost:5000/studies/${id}/download`;
 
   const handleDownload = async () => {
@@ -516,7 +516,11 @@ const SingleStudy = () => {
                   >
 
                     <img
-                      src={getCommenterImage(c.userId)}
+                      src={
+                        c.userId?.image
+                          ? c.userId.image
+                          : "/default-avatar.png"
+                      }
                       alt={c.userId?.username || "User"}
                       className="w-10 h-10 rounded-full"
                     />

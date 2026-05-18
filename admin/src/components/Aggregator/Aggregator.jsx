@@ -141,27 +141,31 @@ const Aggregator = () => {
         </div>
 
         <ul className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
-          {commenters.map((comment, index) => (
-            <li
-              key={index}
-              className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition"
-            >
-              <img
-                src={getCommenterImage(comment.user?.[0])}
-                alt="Commenter"
-                className="w-10 h-10 rounded-full object-cover border"
-              />
+          {commenters.map((comment, index) => {
+            console.log("COMMENT USER:", comment.user);
 
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-800">
-                  {comment.user?.username || "Unknown User"}
-                </p>
-                <p className="text-sm text-gray-600 mt-1 leading-snug">
-                  {comment.text}
-                </p>
-              </div>
-            </li>
-          ))}
+            return (
+              <li
+                key={index}
+                className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition"
+              >
+                <img
+                  src={getCommenterImage(comment.user)}
+                  alt="Commenter"
+                  className="w-10 h-10 rounded-full object-cover border"
+                />
+
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-gray-800">
+                    {comment.user?.username || "Unknown User"}
+                  </p>
+                  <p className="text-sm text-gray-600 mt-1 leading-snug">
+                    {comment.text}
+                  </p>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       </div>
 
