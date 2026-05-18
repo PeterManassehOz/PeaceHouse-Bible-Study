@@ -1,10 +1,24 @@
 const { Storage } = require("@google-cloud/storage");
 
-const storage = new Storage({
-  projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
-});
+let storage;
 
-const bucket = storage.bucket(process.env.GOOGLE_CLOUD_BUCKET_NAME);
+if (process.env.GOOGLE_CLOUD_KEY_JSON) {
+  storage = new Storage({
+    projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+    credentials: JSON.parse(
+      process.env.GOOGLE_CLOUD_KEY_JSON
+    ),
+  });
+} else {
+  storage = new Storage({
+    projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+    keyFilename:
+      process.env.GOOGLE_APPLICATION_CREDENTIALS,
+  });
+}
+
+const bucket = storage.bucket(
+  process.env.GOOGLE_CLOUD_BUCKET_NAME
+);
 
 module.exports = bucket;

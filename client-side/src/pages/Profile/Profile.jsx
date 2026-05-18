@@ -104,7 +104,7 @@ const Profile = () => {
         <img
           src={
             userProfile?.image ||
-            "https://via.placeholder.com/150"
+            "/profileIcon.jpeg"
           }
           alt="Profile"
           className="w-28 h-28 md:w-40 md:h-40 object-cover rounded-full shadow-md"
