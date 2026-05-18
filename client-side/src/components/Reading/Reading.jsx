@@ -60,9 +60,11 @@ const Reading = () => {
       {studies.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
           {studies.map((study) => {
-            const imageUrl = study.image
-              ? `http://localhost:5000/${study.image}`
-              : "/fallback-image.jpg";
+            const API_URL = import.meta.env.VITE_API_URL;
+
+            const imageUrl = study?.image?.startsWith("http")
+              ? study.image
+              : `${API_URL}/${study.image}`;
 
             return (
               <div

@@ -117,7 +117,11 @@ if (error) {
           console.log("STUDY DATA:", study);
           console.log("STUDY IMAGE:", study.image);
 
-          const imageUrl = `http://localhost:5000/${study.image}`;
+          const API_URL = import.meta.env.VITE_API_URL;
+
+          const imageUrl = study?.image?.startsWith("http")
+            ? study.image
+            : `${API_URL}/${study.image}`;
 
           console.log("STUDY DATA:", study);
           console.log("STUDY IMAGE:", study.image);
@@ -155,7 +159,7 @@ if (error) {
                 </span>
               </div>
 
-              <h3 className="text-2xl font-bold text-gray-800 mb-3 line-clamp-2 group-hover:text-green-700 transition">
+              <h3 className="text-2xl font-bold text-gray-800 mb-3 line-clamp-2 group-hover:text-gray-700 transition">
                 {study.title}
               </h3>
 
