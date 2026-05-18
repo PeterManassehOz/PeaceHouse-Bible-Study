@@ -75,7 +75,7 @@ const UserDashboard = () => {
             <img
               src={
                 userProfile?.image ||
-                "https://via.placeholder.com/150"
+                "/profileIcon.jpeg"
               }
               alt="Profile"
               className="w-10 h-10 md:w-13 md:h-13 lg:w-13 lg:h-13 object-cover rounded-full shadow-md"
