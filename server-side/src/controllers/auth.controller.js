@@ -4,9 +4,37 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { hashPassword, verifyPassword, generateToken } = require("../utils/generateTokenPassword");
-const { Resend } = require("resend");
+const nodemailer = require("nodemailer");
+const { google } = require("googleapis");
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const OAuth2 = google.auth.OAuth2;
+
+const oauth2Client = new OAuth2(
+  process.env.GMAIL_CLIENT_ID,
+  process.env.GMAIL_CLIENT_SECRET,
+  "https://developers.google.com/oauthplayground"
+);
+
+oauth2Client.setCredentials({
+  refresh_token: process.env.GMAIL_REFRESH_TOKEN,
+});
+
+async function createTransporter() {
+  const accessToken = await oauth2Client.getAccessToken();
+
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      type: "OAuth2",
+      user: process.env.EMAIL_USER,
+      clientId: process.env.GMAIL_CLIENT_ID,
+      clientSecret: process.env.GMAIL_CLIENT_SECRET,
+      refreshToken: process.env.GMAIL_REFRESH_TOKEN,
+      accessToken: accessToken.token,
+    },
+  });
+}
+
 
 
 const registerUser = async (req, res) => {
@@ -46,7 +74,6 @@ const loginUser = async (req, res) => {
     });
 
   
-      console.log("COMPARE RESULT:", await verifyPassword(password, user.password));
 
       console.log("LOGIN RAW PASSWORD:", JSON.stringify(password));
       console.log("LOGIN PASSWORD LENGTH:", password.length);
@@ -55,6 +82,8 @@ const loginUser = async (req, res) => {
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
+    
+    console.log("COMPARE RESULT:", await verifyPassword(password, user.password));
     
     console.log("DB USER PASSWORD HASH:", user.password);
     const isMatch = await verifyPassword(password, user.password);
@@ -112,57 +141,117 @@ const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
+    // Find user
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({
+        message: "User not found",
+      });
     }
 
+    // Generate reset token
     const resetToken = crypto.randomBytes(32).toString("hex");
-    const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+
+    // Hash token before saving
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+
+    // Token expiry (1 hour)
     const resetTokenExpires = Date.now() + 3600000;
 
+    // Save token + expiry
     await User.findByIdAndUpdate(user._id, {
       resetToken: hashedToken,
       resetTokenExpires,
     });
 
-    const baseUrl = process.env.CLIENT_URL;
+    // Frontend URL
+    const baseUrl =
+      process.env.CLIENT_URL || "http://localhost:5173";
+
     const resetUrl = `${baseUrl}/reset-password/${resetToken}`;
 
-    await resend.emails.send({
-      from: "Peace House Bible Study <onboarding@resend.dev>",
+    // Create transporter
+    const transporter = await createTransporter();
+
+    // Send email
+    await transporter.sendMail({
+      from: `Peace House Bible Study <${process.env.EMAIL_USER}>`,
       to: user.email,
       subject: "Reset Your Password - Peace House Bible Study",
       html: `
         <div style="font-family: Arial, sans-serif; background-color: #f4f6f8; padding: 40px 0;">
-          <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 12px; overflow: hidden;">
+          <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08);">
 
+            <!-- Header -->
             <div style="background: linear-gradient(135deg, #16a34a, #22c55e); padding: 24px; text-align: center;">
-              <h1 style="color: white; margin: 0;">Peace House Bible Study</h1>
+              <h1 style="color: white; margin: 0; font-size: 22px;">
+                Peace House Bible Study
+              </h1>
             </div>
 
-            <div style="padding: 30px;">
-              <h2>Password Reset Request</h2>
+            <!-- Body -->
+            <div style="padding: 30px; color: #333;">
+              <h2 style="margin-top: 0; color: #111;">
+                Password Reset Request
+              </h2>
 
-              <p>Hello <strong>${user.firstname || "there"}</strong>,</p>
+              <p style="font-size: 15px; line-height: 1.6;">
+                Hello <strong>${user.firstname || "there"}</strong>,
+              </p>
 
-              <p>Click below to reset your password:</p>
+              <p style="font-size: 15px; line-height: 1.6;">
+                We received a request to reset your password.
+                Click the button below to continue.
+              </p>
 
-              <div style="text-align:center; margin: 30px 0;">
-                <a href="${resetUrl}"
-                  style="background:#16a34a;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;">
+              <!-- Button -->
+              <div style="text-align: center; margin: 30px 0;">
+                <a
+                  href="${resetUrl}"
+                  style="
+                    background: #16a34a;
+                    color: #ffffff;
+                    padding: 14px 28px;
+                    border-radius: 8px;
+                    text-decoration: none;
+                    font-weight: bold;
+                    display: inline-block;
+                    font-size: 15px;
+                  "
+                >
                   Reset Password
                 </a>
               </div>
 
-              <p>This link expires in 1 hour.</p>
-
-              <p>If you didn’t request this, ignore this email.</p>
-
-              <p style="font-size:12px;color:#999;">
-                ${resetUrl}
+              <p style="font-size: 14px; color: #666; line-height: 1.6;">
+                This link will expire in <strong>1 hour</strong>.
               </p>
+
+              <p style="font-size: 14px; color: #666; line-height: 1.6;">
+                If you did not request this, you can safely ignore this email.
+              </p>
+
+              <!-- Fallback URL -->
+              <p style="font-size: 12px; color: #999; margin-top: 30px;">
+                If the button doesn't work, copy and paste this link:
+                <br />
+                <a
+                  href="${resetUrl}"
+                  style="color: #16a34a; word-break: break-all;"
+                >
+                  ${resetUrl}
+                </a>
+              </p>
+            </div>
+
+            <!-- Footer -->
+            <div style="background: #f1f5f9; text-align: center; padding: 15px; font-size: 12px; color: #777;">
+              © ${new Date().getFullYear()} Peace House Bible Study.
+              All rights reserved.
             </div>
 
           </div>
@@ -170,11 +259,19 @@ const forgotPassword = async (req, res) => {
       `,
     });
 
-    return res.status(200).json({ message: "Password reset email sent" });
+    console.log("Password reset email sent successfully");
+
+    return res.status(200).json({
+      message: "Password reset email sent",
+    });
 
   } catch (error) {
     console.error("Forgot Password Error:", error);
-    return res.status(500).json({ message: "Server Error" });
+
+    return res.status(500).json({
+      message: "Server Error",
+      error: error.message,
+    });
   }
 };
 
