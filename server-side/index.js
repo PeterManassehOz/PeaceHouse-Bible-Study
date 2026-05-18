@@ -14,8 +14,8 @@ app.use(cors({
   origin: [
     'http://localhost:5173',
     'http://localhost:5174',
-    'https://your-client.vercel.app',
-    'https://your-admin.vercel.app'
+    'https://peace-house-bible-study.vercel.app',
+    'https://peace-house-bible-study-phwn.vercel.app'
   ],
   credentials: true,
 }));
