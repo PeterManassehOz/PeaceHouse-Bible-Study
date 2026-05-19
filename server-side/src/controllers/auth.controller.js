@@ -8,27 +8,17 @@ const nodemailer = require("nodemailer");
 
 async function createTransporter() {
   return nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT),
     secure: false,
 
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
     },
-
-    requireTLS: true,
-
-    tls: {
-      ciphers: "SSLv3",
-      rejectUnauthorized: false,
-    },
-
-    connectionTimeout: 120000,
-    greetingTimeout: 120000,
-    socketTimeout: 120000,
   });
 }
+
 
 const registerUser = async (req, res) => {
   try {
