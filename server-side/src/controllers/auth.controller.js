@@ -4,45 +4,9 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { hashPassword, verifyPassword, generateToken } = require("../utils/generateTokenPassword");
-const nodemailer = require("nodemailer");
+const sendMail = require("../utils/sendMail");
 
 
-async function safeSendMail(transporter, mailOptions, retries = 3) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await transporter.sendMail(mailOptions);
-    } catch (err) {
-      console.log(`Mail attempt ${i + 1} failed`, err.message);
-
-      if (i === retries - 1) throw err;
-
-      await new Promise(res => setTimeout(res, 2000));
-    }
-  }
-}
-
-
-function createTransporter() {
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST, // smtp-relay.brevo.com
-    port: 587,
-    secure: false, // MUST be false for 587
-
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-
-    tls: {
-      rejectUnauthorized: false,
-    },
-
-    // important for Render stability
-    connectionTimeout: 20000,
-    greetingTimeout: 20000,
-    socketTimeout: 20000,
-  });
-}
 
 const registerUser = async (req, res) => {
   try {
@@ -141,9 +105,6 @@ const resetUserPassword = async (req, res) => {
   }
 };
 
-
-
-// 🔹 Request Password Reset (Generate Token)
 const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -151,9 +112,7 @@ const forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(404).json({
-        message: "User not found",
-      });
+      return res.status(404).json({ message: "User not found" });
     }
 
     const resetToken = crypto.randomBytes(32).toString("hex");
@@ -170,24 +129,11 @@ const forgotPassword = async (req, res) => {
       resetTokenExpires,
     });
 
-    const baseUrl =
-      process.env.CLIENT_URL || "http://localhost:5173";
+    const baseUrl = process.env.CLIENT_URL || "http://localhost:5173";
 
     const resetUrl = `${baseUrl}/reset-password/${resetToken}`;
 
-    const transporter = await createTransporter();
-
-    console.log("SMTP server is ready");
-    console.log("SMTP_USER:",    process.env.SMTP_USER);
-    console.log("SMTP_PASS EXISTS:", !!process.env.SMTP_PASS);
-
-
-    await safeSendMail(transporter, {
-      from: `Peace House Bible Study <${process.env.EMAIL_USER}>`,
-      to: user.email,
-      subject: "Reset Your Password - Peace House Bible Study",
-
-      html:  `
+    const html = `
         <div style="font-family: Arial, sans-serif; background-color: #f4f6f8; padding: 40px 0;">
           <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08);">
 
@@ -261,24 +207,29 @@ const forgotPassword = async (req, res) => {
 
           </div>
         </div>
-      `,
+      `;
+
+    await sendMail({
+      to: user.email,
+      subject: "Reset Your Password - Peace House Bible Study",
+      html,
     });
 
-    console.log("Password reset email sent");
+    console.log("Brevo email sent successfully");
 
     return res.status(200).json({
       message: "Password reset email sent",
     });
-
   } catch (error) {
     console.error("Forgot Password Error:", error);
 
     return res.status(500).json({
       message: "Server Error",
-      error: error.message,
     });
   }
 };
+
+// 🔹 Request Password Reset (Generate Token)
 
 // 🔹 Reset Password Using Token
 const resetPasswordWithToken = async (req, res) => {
