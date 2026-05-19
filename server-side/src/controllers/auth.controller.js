@@ -9,8 +9,8 @@ const nodemailer = require("nodemailer");
 function createTransporter() {
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
-    secure: false,
+    port: 465,
+    secure: true, // IMPORTANT
 
     auth: {
       user: process.env.SMTP_USER,
@@ -159,6 +159,7 @@ const forgotPassword = async (req, res) => {
 
     await transporter.verify();
     console.log("SMTP verified successfully");
+    console.log("SMTP CONNECTED");
 
     await transporter.sendMail({
       from: `Peace House Bible Study <${process.env.EMAIL_USER}>`,
