@@ -5,36 +5,24 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { hashPassword, verifyPassword, generateToken } = require("../utils/generateTokenPassword");
 const nodemailer = require("nodemailer");
-const { google } = require("googleapis");
-
-const OAuth2 = google.auth.OAuth2;
-
-const oauth2Client = new OAuth2(
-  process.env.GMAIL_CLIENT_ID,
-  process.env.GMAIL_CLIENT_SECRET,
-  "https://developers.google.com/oauthplayground"
-);
-
-oauth2Client.setCredentials({
-  refresh_token: process.env.GMAIL_REFRESH_TOKEN,
-});
 
 async function createTransporter() {
-  const accessToken = await oauth2Client.getAccessToken();
-
   return nodemailer.createTransport({
     service: "gmail",
+
     auth: {
-      type: "OAuth2",
       user: process.env.EMAIL_USER,
-      clientId: process.env.GMAIL_CLIENT_ID,
-      clientSecret: process.env.GMAIL_CLIENT_SECRET,
-      refreshToken: process.env.GMAIL_REFRESH_TOKEN,
-      accessToken: accessToken.token,
+      pass: process.env.EMAIL_PASS,
     },
+
+    tls:
+      process.env.NODE_ENV === "production"
+        ? {}
+        : { rejectUnauthorized: false },
+
+    debug: process.env.NODE_ENV !== "production",
   });
 }
-
 
 
 const registerUser = async (req, res) => {
@@ -141,7 +129,6 @@ const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
-    // Find user
     const user = await User.findOne({ email });
 
     if (!user) {
@@ -150,39 +137,37 @@ const forgotPassword = async (req, res) => {
       });
     }
 
-    // Generate reset token
     const resetToken = crypto.randomBytes(32).toString("hex");
 
-    // Hash token before saving
     const hashedToken = crypto
       .createHash("sha256")
       .update(resetToken)
       .digest("hex");
 
-    // Token expiry (1 hour)
     const resetTokenExpires = Date.now() + 3600000;
 
-    // Save token + expiry
     await User.findByIdAndUpdate(user._id, {
       resetToken: hashedToken,
       resetTokenExpires,
     });
 
-    // Frontend URL
     const baseUrl =
       process.env.CLIENT_URL || "http://localhost:5173";
 
     const resetUrl = `${baseUrl}/reset-password/${resetToken}`;
 
-    // Create transporter
     const transporter = await createTransporter();
 
-    // Send email
+    await transporter.verify();
+
+    console.log("SMTP server is ready");
+
     await transporter.sendMail({
       from: `Peace House Bible Study <${process.env.EMAIL_USER}>`,
       to: user.email,
       subject: "Reset Your Password - Peace House Bible Study",
-      html: `
+
+      html:  `
         <div style="font-family: Arial, sans-serif; background-color: #f4f6f8; padding: 40px 0;">
           <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08);">
 
@@ -259,7 +244,7 @@ const forgotPassword = async (req, res) => {
       `,
     });
 
-    console.log("Password reset email sent successfully");
+    console.log("Password reset email sent");
 
     return res.status(200).json({
       message: "Password reset email sent",
