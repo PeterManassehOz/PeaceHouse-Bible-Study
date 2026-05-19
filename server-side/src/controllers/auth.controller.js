@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const { hashPassword, verifyPassword, generateToken } = require("../utils/generateTokenPassword");
 const nodemailer = require("nodemailer");
 
-async function createTransporter() {
+function createTransporter() {
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT),
@@ -154,9 +154,8 @@ const forgotPassword = async (req, res) => {
     const transporter = await createTransporter();
 
     console.log("SMTP server is ready");
-
-    console.log("EMAIL_USER:", process.env.EMAIL_USER);
-    console.log("EMAIL_PASS EXISTS:", !!process.env.EMAIL_PASS);
+    console.log("SMTP_USER:",    process.env.SMTP_USER);
+    console.log("SMTP_PASS EXISTS:", !!process.env.SMTP_PASS);
 
     await transporter.verify();
     console.log("SMTP verified successfully");
