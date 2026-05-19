@@ -8,18 +8,25 @@ const nodemailer = require("nodemailer");
 
 async function createTransporter() {
   return nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
 
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
 
+    requireTLS: true,
+
     tls: {
+      ciphers: "SSLv3",
       rejectUnauthorized: false,
     },
 
-    debug: true,
+    connectionTimeout: 120000,
+    greetingTimeout: 120000,
+    socketTimeout: 120000,
   });
 }
 
@@ -160,6 +167,9 @@ const forgotPassword = async (req, res) => {
 
     console.log("EMAIL_USER:", process.env.EMAIL_USER);
     console.log("EMAIL_PASS EXISTS:", !!process.env.EMAIL_PASS);
+
+    await transporter.verify();
+    console.log("SMTP verified successfully");
 
     await transporter.sendMail({
       from: `Peace House Bible Study <${process.env.EMAIL_USER}>`,
