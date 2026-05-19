@@ -6,19 +6,43 @@ const crypto = require('crypto');
 const { hashPassword, verifyPassword, generateToken } = require("../utils/generateTokenPassword");
 const nodemailer = require("nodemailer");
 
+
+async function safeSendMail(transporter, mailOptions, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await transporter.sendMail(mailOptions);
+    } catch (err) {
+      console.log(`Mail attempt ${i + 1} failed`, err.message);
+
+      if (i === retries - 1) throw err;
+
+      await new Promise(res => setTimeout(res, 2000));
+    }
+  }
+}
+
+
 function createTransporter() {
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: 465,
-    secure: true, // IMPORTANT
+    host: process.env.SMTP_HOST, // smtp-relay.brevo.com
+    port: 587,
+    secure: false, // MUST be false for 587
 
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+
+    tls: {
+      rejectUnauthorized: false,
+    },
+
+    // important for Render stability
+    connectionTimeout: 20000,
+    greetingTimeout: 20000,
+    socketTimeout: 20000,
   });
 }
-
 
 const registerUser = async (req, res) => {
   try {
@@ -157,11 +181,8 @@ const forgotPassword = async (req, res) => {
     console.log("SMTP_USER:",    process.env.SMTP_USER);
     console.log("SMTP_PASS EXISTS:", !!process.env.SMTP_PASS);
 
-    await transporter.verify();
-    console.log("SMTP verified successfully");
-    console.log("SMTP CONNECTED");
 
-    await transporter.sendMail({
+    await safeSendMail(transporter, {
       from: `Peace House Bible Study <${process.env.EMAIL_USER}>`,
       to: user.email,
       subject: "Reset Your Password - Peace House Bible Study",
