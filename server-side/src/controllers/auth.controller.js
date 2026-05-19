@@ -15,15 +15,13 @@ async function createTransporter() {
       pass: process.env.EMAIL_PASS,
     },
 
-    tls:
-      process.env.NODE_ENV === "production"
-        ? {}
-        : { rejectUnauthorized: false },
+    tls: {
+      rejectUnauthorized: false,
+    },
 
-    debug: process.env.NODE_ENV !== "production",
+    debug: true,
   });
 }
-
 
 const registerUser = async (req, res) => {
   try {
@@ -158,9 +156,10 @@ const forgotPassword = async (req, res) => {
 
     const transporter = await createTransporter();
 
-    await transporter.verify();
-
     console.log("SMTP server is ready");
+
+    console.log("EMAIL_USER:", process.env.EMAIL_USER);
+    console.log("EMAIL_PASS EXISTS:", !!process.env.EMAIL_PASS);
 
     await transporter.sendMail({
       from: `Peace House Bible Study <${process.env.EMAIL_USER}>`,
